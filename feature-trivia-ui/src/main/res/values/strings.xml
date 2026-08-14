@@ -1,0 +1,28 @@
+<resources>
+    <string name="error_no_internet">No internet connection. Please check your network and retry.</string>
+    <string name="error_network_loading_failed">Network error while loading questions. Please try again.</string>
+    <string name="error_network_occurred">Network error occurred</string>
+    <string name="error_no_questions_available">No questions available to answer.</string>
+    <string name="error_no_valid_question">No valid question available.</string>
+    <string name="error_unknown">Unknown error</string>
+    <string name="error_invalid_amount">Please choose a number between 10 and 50.</string>
+    <string name="error_no_results_for_filters">Not enough questions available for the selected filters.</string>
+    <string name="error_rate_limit">Too many requests. Please wait a few seconds and try again.</string>
+    <string name="error_invalid_query_parameters">The selected request parameters are invalid.</string>
+    <string name="retry">Retry</string>
+    <string name="question_counter">Question %1$d of %2$d</string>
+    <string name="ready_to_play">Ready to play?</string>
+    <string name="start_game">Start Game</string>
+    <string name="question_amount">Question amount</string>
+    <string name="category_label">Category</string>
+    <string name="difficulty_label">Difficulty</string>
+    <string name="any_category">Any category</string>
+    <string name="loading_categories">Loading categories…</string>
+    <string name="error_loading_categories">Could not load categories. Please try again.</string>
+    <string name="result_title">Quiz Complete!</string>
+    <string name="score_label">Score: %1$d / %2$d</string>
+    <string name="incorrect_label">Incorrect: %1$d</string>
+    <string name="percentage_label">Percentage: %1$s%%</string>
+    <string name="time_label">Time: %1$s</string>
+    <string name="play_again">Play Again</string>
+</resources>

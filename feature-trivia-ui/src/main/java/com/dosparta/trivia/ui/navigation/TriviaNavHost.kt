@@ -1,0 +1,115 @@
+package com.dosparta.trivia.ui.navigation
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.dosparta.trivia.domain.game.GameResult
+import com.dosparta.trivia.ui.screens.LoadingScreen
+import com.dosparta.trivia.ui.screens.ResultScreen
+import com.dosparta.trivia.ui.screens.SetupScreen
+import com.dosparta.trivia.ui.screens.TriviaScreen
+import com.dosparta.trivia.ui.viewmodel.StartupUiState
+import com.dosparta.trivia.ui.viewmodel.TriviaViewModel
+
+private const val ROUTE_LOADING = "loading"
+private const val ROUTE_SETUP = "setup"
+private const val ROUTE_TRIVIA = "trivia"
+private const val ROUTE_RESULT = "result/{totalQuestions}/{correctAnswers}/{durationMillis}"
+
+/**
+ * Hosts the navigation graph for the trivia feature using Compose Navigation and Hilt.
+ */
+@Composable
+fun TriviaNavHost() {
+    val navController = rememberNavController()
+    val viewModel: TriviaViewModel = hiltViewModel()
+    val categories = viewModel.categories.collectAsState().value
+    val categoriesError = viewModel.categoriesError.collectAsState().value
+    val startupState = viewModel.startupState.collectAsState().value
+
+    NavHost(
+        navController = navController,
+        startDestination = ROUTE_LOADING
+    ) {
+        composable(ROUTE_LOADING) {
+            LaunchedEffect(Unit) {
+                viewModel.bootstrapApp()
+            }
+
+            LaunchedEffect(startupState) {
+                when (startupState) {
+                    is StartupUiState.NavigateToSetup -> {
+                        navController.navigate(ROUTE_SETUP) {
+                            popUpTo(ROUTE_LOADING) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                    is StartupUiState.NavigateToTrivia -> {
+                        navController.navigate(ROUTE_TRIVIA) {
+                            popUpTo(ROUTE_LOADING) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                    else -> Unit
+                }
+            }
+
+            LoadingScreen(
+                error = (startupState as? StartupUiState.Error)?.message,
+                onRetry = { viewModel.retryBootstrap() }
+            )
+        }
+
+        composable(ROUTE_SETUP) {
+            SetupScreen(
+                categories = categories,
+                categoriesError = categoriesError,
+                onStartGame = { config ->
+                    viewModel.loadQuestions(config)
+                    navController.navigate(ROUTE_TRIVIA) {
+                        popUpTo(ROUTE_SETUP) { inclusive = true }
+                    }
+                },
+                onRetryLoadCategories = {
+                    viewModel.loadCategories()
+                }
+            )
+        }
+
+        composable(ROUTE_TRIVIA) {
+            TriviaScreen(
+                viewModel = viewModel,
+                onResult = { result ->
+                    navController.navigate(
+                        "result/${result.totalQuestions}/${result.correctAnswers}/${result.durationMillis}"
+                    )
+                }
+            )
+        }
+
+        composable(ROUTE_RESULT) { backStackEntry ->
+            val totalQuestions = backStackEntry.arguments?.getString("totalQuestions")?.toIntOrNull() ?: 0
+            val correctAnswers = backStackEntry.arguments?.getString("correctAnswers")?.toIntOrNull() ?: 0
+            val durationMillis = backStackEntry.arguments?.getString("durationMillis")?.toLongOrNull() ?: 0L
+            val result = GameResult(
+                totalQuestions = totalQuestions,
+                correctAnswers = correctAnswers,
+                durationMillis = durationMillis
+            )
+
+            ResultScreen(
+                result = result,
+                onRestart = {
+                    viewModel.restart()
+                    navController.navigate(ROUTE_SETUP) {
+                        popUpTo(ROUTE_TRIVIA) { inclusive = true }
+                    }
+                }
+            )
+        }
+    }
+}
