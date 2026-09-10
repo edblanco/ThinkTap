@@ -8,6 +8,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 
 /**
  * A full-screen loading indicator.
@@ -15,7 +16,9 @@ import androidx.compose.ui.Modifier
 @Composable
 fun LoadingScreen() {
     Surface(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("loading_screen"),
         color = MaterialTheme.colorScheme.background
     ) {
         Box(

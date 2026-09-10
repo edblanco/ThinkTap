@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.dosparta.trivia.domain.model.TriviaCategory
@@ -88,7 +89,8 @@ fun SetupScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(24.dp),
+                .padding(24.dp)
+                .testTag("setup_screen"),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -113,13 +115,17 @@ fun SetupScreen(
                     onValueChange = { selectedAmount = it.roundToInt() },
                     valueRange = 10f..50f,
                     steps = 39,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("amount_slider")
                 )
 
                 Box {
                     OutlinedButton(
                         onClick = { categoryExpanded = true },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("category_button")
                     ) {
                         Text(text = selectedCategoryName)
                     }
@@ -151,7 +157,9 @@ fun SetupScreen(
                 Box {
                     OutlinedButton(
                         onClick = { difficultyExpanded = true },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("difficulty_button")
                     ) {
                         Text(
                             if (selectedDifficulty == "mixed") "Mixed" else selectedDifficulty.replaceFirstChar { it.uppercase() }
@@ -183,7 +191,9 @@ fun SetupScreen(
                         )
                         onStartGame(config)
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("start_game_button")
                 ) {
                     Text(text = stringResource(R.string.start_game))
                 }
