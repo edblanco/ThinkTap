@@ -29,6 +29,7 @@ turbineVer= "1.2.1"
 mockkVer = "1.14.11"
 kotlinTest = "1.8.22"
 uiTestCompose = "1.12.0"
+detekt = "1.23.8"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -88,4 +89,5 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 android-library = { id = "com.android.library", version.ref = "agp" }
 android-hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp"}
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 

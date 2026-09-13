@@ -7,15 +7,25 @@ plugins {
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.android.hilt) apply false
     alias(libs.plugins.devtools.ksp) apply false
+    alias(libs.plugins.detekt) apply false
 }
 
 // Apply Jacoco only to JVM-based subprojects (avoid instrumenting Android/Robolectric internals)
 subprojects {
+    apply(plugin = "io.gitlab.arturbosch.detekt")
+
     plugins.withType<JavaBasePlugin> {
         apply(plugin = "jacoco")
         extensions.configure<JacocoPluginExtension> {
             toolVersion = "0.8.8"
         }
+    }
+
+    extensions.configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension>("detekt") {
+        config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+        buildUponDefaultConfig = true
+        parallel = true
+        ignoreFailures = true
     }
 }
 
