@@ -103,10 +103,19 @@ fun TriviaNavHost() {
 
             ResultScreen(
                 result = result,
-                onRestart = {
+                onPlayAgain = {
+                    if (viewModel.replayLastGame()) {
+                        navController.navigate(ROUTE_TRIVIA) {
+                            popUpTo(ROUTE_RESULT) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                },
+                onStartNewGame = {
                     viewModel.restart()
                     navController.navigate(ROUTE_SETUP) {
-                        popUpTo(ROUTE_TRIVIA) { inclusive = true }
+                        popUpTo(ROUTE_RESULT) { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             )

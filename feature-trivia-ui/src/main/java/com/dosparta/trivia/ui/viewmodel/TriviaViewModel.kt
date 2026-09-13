@@ -6,6 +6,7 @@ import com.dosparta.trivia.domain.game.GameResult
 import com.dosparta.trivia.domain.game.GameSession
 import com.dosparta.trivia.domain.model.TriviaCategory
 import com.dosparta.trivia.domain.model.TriviaConfig
+import com.dosparta.trivia.domain.model.TriviaQuestion
 import com.dosparta.trivia.domain.repository.IGameSessionRepository
 import com.dosparta.trivia.domain.usecase.FinishGameUseCase
 import com.dosparta.trivia.domain.usecase.LoadCategoriesUseCase
@@ -69,6 +70,7 @@ class TriviaViewModel @Inject constructor(
     private var loadJob: Job? = null
     private var bootstrapped = false
     private var pausedElapsedMillis: Long? = null
+    private var replayQuestions: List<TriviaQuestion> = emptyList()
 
     fun cancelPendingLoad() {
         loadJob?.cancel()
@@ -92,6 +94,7 @@ class TriviaViewModel @Inject constructor(
 
             if (restoredState != null) {
                 val activeElapsedMillis = normalizePersistedElapsedMillis(restoredState.activeElapsedMillis)
+                replayQuestions = restoredState.questions
                 _uiState.value = TriviaUiState.Game(
                     GameSession(
                         questions = restoredState.questions,
@@ -174,6 +177,7 @@ class TriviaViewModel @Inject constructor(
                 val session = startGame(config)
                 if (!coroutineContext.isActive) return@launch
                 pausedElapsedMillis = null
+                replayQuestions = session.questions
                 _uiState.value = TriviaUiState.Game(session)
                 // Save the newly started game session
                 saveGameSession(session)
@@ -221,6 +225,7 @@ class TriviaViewModel @Inject constructor(
         val updated = submitAnswer(current, answer)
         if (updated.currentIndex >= updated.questions.size) {
             pausedElapsedMillis = null
+            replayQuestions = updated.questions
             _uiState.value = TriviaUiState.Result(finishGame(updated))
             // Clear persisted session when game finishes
             clearGameSessionAsync()
@@ -296,6 +301,17 @@ class TriviaViewModel @Inject constructor(
             loadCategories()
         }
         _uiState.value = TriviaUiState.Idle
+    }
+
+    fun replayLastGame(): Boolean {
+        if (replayQuestions.isEmpty()) return false
+
+        cancelPendingLoad()
+        pausedElapsedMillis = null
+        val session = GameSession(questions = replayQuestions)
+        _uiState.value = TriviaUiState.Game(session)
+        saveGameSession(session)
+        return true
     }
 
     override fun onCleared() {

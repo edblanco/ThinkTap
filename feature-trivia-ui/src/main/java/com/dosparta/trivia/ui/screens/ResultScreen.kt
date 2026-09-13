@@ -27,13 +27,15 @@ import com.dosparta.trivia.ui.R
 /**
  * A screen displaying the results of a completed trivia session.
  * @param result the [GameResult] to show
- * @param onRestart callback when the user wants to play again
+ * @param onPlayAgain callback when the user wants to replay the same questions
+ * @param onStartNewGame callback when the user wants to start a new game from setup
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResultScreen(
     result: GameResult,
-    onRestart: () -> Unit
+    onPlayAgain: () -> Unit,
+    onStartNewGame: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -88,10 +90,17 @@ fun ResultScreen(
             }
 
             Button(
-                onClick = onRestart,
+                onClick = onPlayAgain,
                 modifier = Modifier.fillMaxWidth().height(48.dp)
             ) {
                 Text(text = stringResource(R.string.play_again))
+            }
+
+            Button(
+                onClick = onStartNewGame,
+                modifier = Modifier.fillMaxWidth().height(48.dp)
+            ) {
+                Text(text = stringResource(R.string.start_new_game))
             }
         }
     }

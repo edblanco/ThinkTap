@@ -44,8 +44,9 @@ class ScreenTests {
     }
 
     @Test
-    fun `ResultScreen displays correct stats and handles restart`() {
-        var restartClicked = false
+    fun `ResultScreen displays correct stats and handles actions`() {
+        var playAgainClicked = false
+        var startNewGameClicked = false
         val result = GameResult(
             totalQuestions = 4,
             correctAnswers = 3,
@@ -56,7 +57,8 @@ class ScreenTests {
         composeTestRule.setContent {
             ResultScreen(
                 result = result,
-                onRestart = { restartClicked = true }
+                onPlayAgain = { playAgainClicked = true },
+                onStartNewGame = { startNewGameClicked = true }
             )
         }
 
@@ -65,6 +67,8 @@ class ScreenTests {
         composeTestRule.onNodeWithText(context.getString(R.string.percentage_label, "75.0")).assertIsDisplayed()
         composeTestRule.onNodeWithText(context.getString(R.string.time_label, "2:05")).assertIsDisplayed()
         composeTestRule.onNodeWithText(context.getString(R.string.play_again)).assertIsDisplayed().performClick()
-        assertTrue(restartClicked)
+        composeTestRule.onNodeWithText(context.getString(R.string.start_new_game)).assertIsDisplayed().performClick()
+        assertTrue(playAgainClicked)
+        assertTrue(startNewGameClicked)
     }
 }

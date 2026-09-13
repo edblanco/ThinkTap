@@ -152,6 +152,42 @@ class TriviaViewModelTest {
     }
 
     @Test
+    fun `replayLastGame restarts the completed question set`() = runTest {
+        val question = TriviaQuestion(
+            "General", "boolean", "easy",
+            "Is sky blue?", "True", listOf("True", "False")
+        )
+        val initialSession = GameSession(
+            questions = listOf(question),
+            currentIndex = 0,
+            correctCount = 0,
+            startTimeMillis = 10L
+        )
+        val finishedSession = initialSession.copy(
+            currentIndex = 1,
+            correctCount = 1
+        )
+        coEvery { startGame.invoke(any()) } returns initialSession
+        coEvery { submitAnswer.invoke(any(), any()) } returns finishedSession
+        coEvery { finishGame.invoke(finishedSession) } returns GameResult(1, 1, 100L)
+
+        viewModel.loadQuestions(TriviaConfig(amount = 10))
+        advanceUntilIdle()
+        viewModel.submit("True")
+        advanceUntilIdle()
+
+        val replayed = viewModel.replayLastGame()
+        advanceUntilIdle()
+
+        assertTrue(replayed)
+        assertTrue(viewModel.uiState.value is TriviaUiState.Game)
+        val replayedSession = (viewModel.uiState.value as TriviaUiState.Game).session
+        assertEquals(listOf(question), replayedSession.questions)
+        assertEquals(0, replayedSession.currentIndex)
+        assertEquals(0, replayedSession.correctCount)
+    }
+
+    @Test
     fun `loadQuestions ignores duplicate requests while a load is already in progress`() = runTest {
         val session = GameSession(
             questions = listOf(
