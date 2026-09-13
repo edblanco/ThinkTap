@@ -1,10 +1,22 @@
 package com.dosparta.trivia.ui.screens
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -23,7 +35,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -32,6 +46,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.dosparta.trivia.domain.game.GameResult
+import com.dosparta.trivia.domain.model.TriviaQuestion
 import com.dosparta.trivia.ui.R
 import com.dosparta.trivia.ui.UiText
 import com.dosparta.trivia.ui.components.ErrorScreen
@@ -40,9 +55,10 @@ import com.dosparta.trivia.ui.viewmodel.TriviaUiState
 import com.dosparta.trivia.ui.viewmodel.TriviaViewModel
 import kotlinx.coroutines.delay
 
-private const val ANSWER_FEEDBACK_DELAY_MILLIS = 1_000L
+private const val ANSWER_AUTO_ADVANCE_DELAY_MILLIS = 5_000L
 private val CorrectAnswerColor = Color(0xFF2E7D32)
 private val CorrectAnswerContentColor = Color(0xFFFFFFFF)
+private val NextQuestionButtonFillColor = Color(0xFF1D4ED8)
 
 /**
  * The main trivia screen, showing questions, handling user answers,
@@ -88,6 +104,9 @@ fun TriviaScreen(
             val selectedAnswerState = remember(current.currentIndex, question?.question) {
                 mutableStateOf<String?>(null)
             }
+            val nextQuestionButtonBringIntoViewRequester = remember(current.currentIndex, question?.question) {
+                BringIntoViewRequester()
+            }
             val selectedAnswer = selectedAnswerState.value
 
             if (question == null) {
@@ -96,12 +115,6 @@ fun TriviaScreen(
                     onRetry = { viewModel.loadQuestions() }
                 )
                 return
-            }
-
-            LaunchedEffect(selectedAnswer) {
-                val answer = selectedAnswer ?: return@LaunchedEffect
-                delay(ANSWER_FEEDBACK_DELAY_MILLIS)
-                viewModel.submit(answer)
             }
 
             Scaffold(
@@ -120,7 +133,8 @@ fun TriviaScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
-                        .padding(16.dp),
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
@@ -170,43 +184,13 @@ fun TriviaScreen(
                         )
                     }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        question.options.forEachIndexed { index, option ->
-                            val answerState = when {
-                                selectedAnswer == null -> "default"
-                                option == question.correctAnswer -> "correct"
-                                option == selectedAnswer -> "incorrect"
-                                else -> "default"
-                            }
-                            val buttonColors = when (answerState) {
-                                "correct" -> ButtonDefaults.buttonColors(
-                                    containerColor = CorrectAnswerColor,
-                                    contentColor = CorrectAnswerContentColor
-                                )
-                                "incorrect" -> ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.error,
-                                    contentColor = MaterialTheme.colorScheme.onError
-                                )
-                                else -> ButtonDefaults.buttonColors()
-                            }
-                            Button(
-                                onClick = {
-                                    if (selectedAnswer == null) {
-                                        selectedAnswerState.value = option
-                                    }
-                                },
-                                colors = buttonColors,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("answer_option_$index")
-                                    .semantics {
-                                        stateDescription = answerState
-                                    }
-                            ) {
-                                Text(text = option)
-                            }
-                        }
-                    }
+                    AnswerOptionsSection(
+                        question = question,
+                        selectedAnswer = selectedAnswer,
+                        onAnswerSelected = { selectedAnswerState.value = it },
+                        onAnswerConfirmed = { viewModel.submit(it) },
+                        bringIntoViewRequester = nextQuestionButtonBringIntoViewRequester
+                    )
                 }
             }
         }
@@ -219,5 +203,103 @@ fun TriviaScreen(
             },
             onRetryLoadCategories = { viewModel.loadCategories() }
         )
+    }
+}
+
+@Composable
+internal fun AnswerOptionsSection(
+    question: TriviaQuestion,
+    selectedAnswer: String?,
+    onAnswerSelected: (String) -> Unit,
+    onAnswerConfirmed: (String) -> Unit,
+    bringIntoViewRequester: BringIntoViewRequester,
+    autoAdvanceDelayMillis: Long = ANSWER_AUTO_ADVANCE_DELAY_MILLIS
+) {
+    val autoAdvanceProgress = remember(question.question) { Animatable(0f) }
+
+    LaunchedEffect(selectedAnswer) {
+        autoAdvanceProgress.snapTo(0f)
+        val answer = selectedAnswer ?: return@LaunchedEffect
+        bringIntoViewRequester.bringIntoView()
+        autoAdvanceProgress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(
+                durationMillis = autoAdvanceDelayMillis.toInt(),
+                easing = LinearEasing
+            )
+        )
+        onAnswerConfirmed(answer)
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        question.options.forEachIndexed { index, option ->
+            val answerState = when {
+                selectedAnswer == null -> "default"
+                option == question.correctAnswer -> "correct"
+                option == selectedAnswer -> "incorrect"
+                else -> "default"
+            }
+            val buttonColors = when (answerState) {
+                "correct" -> ButtonDefaults.buttonColors(
+                    containerColor = CorrectAnswerColor,
+                    contentColor = CorrectAnswerContentColor
+                )
+                "incorrect" -> ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                )
+                else -> ButtonDefaults.buttonColors()
+            }
+            Button(
+                onClick = {
+                    if (selectedAnswer == null) {
+                        onAnswerSelected(option)
+                    }
+                },
+                colors = buttonColors,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("answer_option_$index")
+                    .semantics {
+                        stateDescription = answerState
+                    }
+            ) {
+                Text(text = option)
+            }
+        }
+
+        if (selectedAnswer != null) {
+            Button(
+                onClick = { onAnswerConfirmed(selectedAnswer) },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.tertiary,
+                    contentColor = MaterialTheme.colorScheme.onTertiary
+                ),
+                contentPadding = PaddingValues(0.dp),
+                modifier = Modifier
+                    .padding(top = 16.dp, start = 100.dp)
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .bringIntoViewRequester(bringIntoViewRequester)
+                    .testTag("next_question_button")
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(MaterialTheme.shapes.large)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(autoAdvanceProgress.value)
+                            .background(NextQuestionButtonFillColor)
+                    )
+                    Text(
+                        text = stringResource(R.string.next_question),
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+            }
+        }
     }
 }

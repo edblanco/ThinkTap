@@ -2,71 +2,38 @@ package com.dosparta.trivia.ui.screens
 
 import android.content.Context
 import android.os.Build
-import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
-import com.dosparta.trivia.domain.game.GameEngine
 import com.dosparta.trivia.domain.game.GameResult
-import com.dosparta.trivia.domain.model.TriviaCategory
-import com.dosparta.trivia.domain.model.TriviaConfig
 import com.dosparta.trivia.domain.model.TriviaQuestion
-import com.dosparta.trivia.domain.repository.GameSessionState
-import com.dosparta.trivia.domain.repository.IGameSessionRepository
-import com.dosparta.trivia.domain.repository.ITriviaRepository
-import com.dosparta.trivia.domain.usecase.FinishGameUseCase
-import com.dosparta.trivia.domain.usecase.LoadCategoriesUseCase
-import com.dosparta.trivia.domain.usecase.StartGameSession
-import com.dosparta.trivia.domain.usecase.SubmitAnswerUseCase
 import com.dosparta.trivia.ui.R
 import com.dosparta.trivia.ui.UiText
 import com.dosparta.trivia.ui.components.ErrorScreen
-import com.dosparta.trivia.ui.viewmodel.TriviaViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.After
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [Build.VERSION_CODES.N])
 class ScreenTests {
     @get:Rule
-    val instantExecutorRule = InstantTaskExecutorRule()
-
-    @get:Rule
     val composeTestRule = createComposeRule()
-
-    private val dispatcher = StandardTestDispatcher()
-
-    @Before
-    fun setUp() {
-        Dispatchers.setMain(dispatcher)
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-    }
 
     @Test
     fun `ErrorScreen shows message and retry button`() {
@@ -117,7 +84,7 @@ class ScreenTests {
     }
 
     @Test
-    fun `TriviaScreen highlights incorrect and correct answers`() = runTest {
+    fun `AnswerOptionsSection highlights incorrect and correct answers`() {
         val question = TriviaQuestion(
             category = "Science",
             type = "multiple",
@@ -126,45 +93,25 @@ class ScreenTests {
             correctAnswer = "Water",
             options = listOf("Water", "Salt", "Sugar", "Ice")
         )
-        val fakeSessionRepo = object : IGameSessionRepository {
-            override suspend fun saveGameSession(
-                questions: List<TriviaQuestion>,
-                currentIndex: Int,
-                correctCount: Int,
-                activeElapsedMillis: Long,
-                selectedAnswers: Map<Int, String>
-            ) = Unit
-
-            override fun getActiveSessionFlow(): Flow<GameSessionState?> = flowOf(null)
-
-            override suspend fun getActiveSession(): GameSessionState? = null
-
-            override suspend fun clearActiveSession() = Unit
-        }
-        val fakeRepo = object : ITriviaRepository {
-            override suspend fun getQuestions(config: TriviaConfig): List<TriviaQuestion> = listOf(question)
-
-            override suspend fun getCategories(): List<TriviaCategory> = emptyList()
-        }
-        val viewModel = TriviaViewModel(
-            startGame = StartGameSession(fakeRepo),
-            submitAnswer = SubmitAnswerUseCase(GameEngine()),
-            finishGame = FinishGameUseCase(GameEngine()),
-            loadCategoriesUseCase = LoadCategoriesUseCase(fakeRepo),
-            gameSessionRepository = fakeSessionRepo
-        )
-
-        viewModel.loadQuestions(TriviaConfig(amount = 10))
-        advanceUntilIdle()
+        val selectedAnswer = mutableStateOf<String?>(null)
+        var confirmedAnswer: String? = null
 
         composeTestRule.setContent {
-            TriviaScreen(
-                viewModel = viewModel,
-                onResult = {}
-            )
+            MaterialTheme {
+                AnswerOptionsSection(
+                    question = question,
+                    selectedAnswer = selectedAnswer.value,
+                    onAnswerSelected = { selectedAnswer.value = it },
+                    onAnswerConfirmed = { confirmedAnswer = it },
+                    bringIntoViewRequester = BringIntoViewRequester()
+                )
+            }
         }
 
         composeTestRule.onNodeWithText("Salt").performClick()
+        composeTestRule.waitUntil(1_000L) {
+            composeTestRule.onAllNodesWithTag("next_question_button").fetchSemanticsNodes().isNotEmpty()
+        }
 
         composeTestRule.onNodeWithTag("answer_option_1").assert(
             SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "incorrect")
@@ -172,5 +119,8 @@ class ScreenTests {
         composeTestRule.onNodeWithTag("answer_option_0").assert(
             SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "correct")
         )
+        composeTestRule.onNodeWithTag("next_question_button").assertIsDisplayed().performClick()
+        assertEquals("Salt", confirmedAnswer)
     }
+
 }
