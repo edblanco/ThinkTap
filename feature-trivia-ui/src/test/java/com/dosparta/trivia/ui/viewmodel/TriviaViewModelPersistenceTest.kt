@@ -7,8 +7,11 @@ import com.dosparta.trivia.domain.model.TriviaCategory
 import com.dosparta.trivia.domain.model.TriviaQuestion
 import com.dosparta.trivia.domain.repository.GameSessionState
 import com.dosparta.trivia.domain.repository.IGameSessionRepository
+import com.dosparta.trivia.domain.usecase.ClearGameSessionUseCase
 import com.dosparta.trivia.domain.usecase.FinishGameUseCase
 import com.dosparta.trivia.domain.usecase.LoadCategoriesUseCase
+import com.dosparta.trivia.domain.usecase.PersistGameSessionUseCase
+import com.dosparta.trivia.domain.usecase.ResolveAppStartupUseCase
 import com.dosparta.trivia.domain.usecase.StartGameSession
 import com.dosparta.trivia.domain.usecase.SubmitAnswerUseCase
 import com.dosparta.trivia.ui.R
@@ -43,6 +46,9 @@ class TriviaViewModelPersistenceTest {
     private lateinit var submitAnswer: SubmitAnswerUseCase
     private lateinit var finishGame: FinishGameUseCase
     private lateinit var loadCategoriesUseCase: LoadCategoriesUseCase
+    private lateinit var resolveStartupUseCase: ResolveAppStartupUseCase
+    private lateinit var persistGameSessionUseCase: PersistGameSessionUseCase
+    private lateinit var clearGameSessionUseCase: ClearGameSessionUseCase
     private lateinit var gameSessionRepository: IGameSessionRepository
     private lateinit var viewModel: TriviaViewModel
 
@@ -62,19 +68,27 @@ class TriviaViewModelPersistenceTest {
         submitAnswer = mockk()
         finishGame = mockk()
         loadCategoriesUseCase = mockk()
+        resolveStartupUseCase = mockk()
+        persistGameSessionUseCase = mockk()
+        clearGameSessionUseCase = mockk()
         gameSessionRepository = mockk()
 
         coEvery { gameSessionRepository.getActiveSession() } returns null
         coEvery { loadCategoriesUseCase.invoke() } returns emptyList()
         coEvery { gameSessionRepository.saveGameSession(any(), any(), any(), any(), any()) } returns Unit
         coEvery { gameSessionRepository.clearActiveSession() } returns Unit
+        coEvery { resolveStartupUseCase.invoke() } returns com.dosparta.trivia.domain.game.StartupDecision.LoadCategories
+        coEvery { persistGameSessionUseCase.invoke(any(), any(), any(), any(), any()) } returns Unit
+        coEvery { clearGameSessionUseCase.invoke() } returns Unit
 
         viewModel = TriviaViewModel(
             startGame = startGame,
             submitAnswer = submitAnswer,
             finishGame = finishGame,
             loadCategoriesUseCase = loadCategoriesUseCase,
-            gameSessionRepository = gameSessionRepository
+            resolveStartupUseCase = resolveStartupUseCase,
+            persistGameSessionUseCase = persistGameSessionUseCase,
+            clearGameSessionUseCase = clearGameSessionUseCase
         )
     }
 
@@ -85,12 +99,14 @@ class TriviaViewModelPersistenceTest {
 
     @Test
     fun `bootstrapApp navigates to trivia when persisted game exists`() = runTest {
-        coEvery { gameSessionRepository.getActiveSession() } returns GameSessionState(
-            questions = listOf(question),
-            currentIndex = 0,
-            correctCount = 0,
-            activeElapsedMillis = 42L,
-            selectedAnswers = emptyMap()
+        coEvery { resolveStartupUseCase.invoke() } returns com.dosparta.trivia.domain.game.StartupDecision.RestoreGame(
+            GameSessionState(
+                questions = listOf(question),
+                currentIndex = 0,
+                correctCount = 0,
+                activeElapsedMillis = 42L,
+                selectedAnswers = emptyMap()
+            )
         )
 
         viewModel.bootstrapApp()
@@ -155,7 +171,7 @@ class TriviaViewModelPersistenceTest {
         advanceUntilIdle()
 
         coVerify {
-            gameSessionRepository.saveGameSession(
+            persistGameSessionUseCase.invoke(
                 questions = session.questions,
                 currentIndex = 0,
                 correctCount = 0,
@@ -183,7 +199,7 @@ class TriviaViewModelPersistenceTest {
         viewModel.submit("Water")
         advanceUntilIdle()
 
-        coVerify { gameSessionRepository.clearActiveSession() }
+        coVerify { clearGameSessionUseCase.invoke() }
     }
 
     @Test
@@ -202,14 +218,14 @@ class TriviaViewModelPersistenceTest {
         advanceUntilIdle()
 
         coVerify(atLeast = 1) {
-            gameSessionRepository.saveGameSession(any(), any(), any(), any(), any())
+            persistGameSessionUseCase.invoke(any(), any(), any(), any(), any())
         }
     }
 
     @Test
     fun `onAppResumed rebases timer so background time is not counted`() = runTest {
         val capturedElapsed = mutableListOf<Long>()
-        coEvery { gameSessionRepository.saveGameSession(any(), any(), any(), any(), any()) } answers {
+        coEvery { persistGameSessionUseCase.invoke(any(), any(), any(), any(), any()) } answers {
             capturedElapsed += args[3] as Long
             Unit
         }

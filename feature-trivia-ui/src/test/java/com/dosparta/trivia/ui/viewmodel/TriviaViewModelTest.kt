@@ -7,8 +7,11 @@ import com.dosparta.trivia.domain.model.TriviaCategory
 import com.dosparta.trivia.domain.model.TriviaConfig
 import com.dosparta.trivia.domain.model.TriviaQuestion
 import com.dosparta.trivia.domain.repository.IGameSessionRepository
+import com.dosparta.trivia.domain.usecase.ClearGameSessionUseCase
 import com.dosparta.trivia.domain.usecase.FinishGameUseCase
 import com.dosparta.trivia.domain.usecase.LoadCategoriesUseCase
+import com.dosparta.trivia.domain.usecase.PersistGameSessionUseCase
+import com.dosparta.trivia.domain.usecase.ResolveAppStartupUseCase
 import com.dosparta.trivia.domain.usecase.StartGameSession
 import com.dosparta.trivia.domain.usecase.SubmitAnswerUseCase
 import com.dosparta.trivia.ui.R
@@ -45,6 +48,9 @@ class TriviaViewModelTest {
     private lateinit var submitAnswer: SubmitAnswerUseCase
     private lateinit var finishGame: FinishGameUseCase
     private lateinit var loadCategoriesUseCase: LoadCategoriesUseCase
+    private lateinit var resolveStartupUseCase: ResolveAppStartupUseCase
+    private lateinit var persistGameSessionUseCase: PersistGameSessionUseCase
+    private lateinit var clearGameSessionUseCase: ClearGameSessionUseCase
     private lateinit var gameSessionRepository: IGameSessionRepository
     private lateinit var viewModel: TriviaViewModel
 
@@ -55,11 +61,25 @@ class TriviaViewModelTest {
         submitAnswer = mockk()
         finishGame = mockk()
         loadCategoriesUseCase = mockk()
+        resolveStartupUseCase = mockk()
+        persistGameSessionUseCase = mockk()
+        clearGameSessionUseCase = mockk()
         gameSessionRepository = mockk()
         coEvery { gameSessionRepository.getActiveSession() } returns null
         coEvery { gameSessionRepository.saveGameSession(any(), any(), any(), any(), any()) } returns Unit
         coEvery { gameSessionRepository.clearActiveSession() } returns Unit
-        viewModel = TriviaViewModel(startGame, submitAnswer, finishGame, loadCategoriesUseCase, gameSessionRepository)
+        coEvery { resolveStartupUseCase.invoke() } returns com.dosparta.trivia.domain.game.StartupDecision.LoadCategories
+        coEvery { persistGameSessionUseCase.invoke(any(), any(), any(), any(), any()) } returns Unit
+        coEvery { clearGameSessionUseCase.invoke() } returns Unit
+        viewModel = TriviaViewModel(
+            startGame = startGame,
+            submitAnswer = submitAnswer,
+            finishGame = finishGame,
+            loadCategoriesUseCase = loadCategoriesUseCase,
+            resolveStartupUseCase = resolveStartupUseCase,
+            persistGameSessionUseCase = persistGameSessionUseCase,
+            clearGameSessionUseCase = clearGameSessionUseCase
+        )
     }
 
     @After

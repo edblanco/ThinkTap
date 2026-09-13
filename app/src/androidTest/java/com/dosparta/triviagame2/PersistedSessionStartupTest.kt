@@ -13,8 +13,11 @@ import com.dosparta.trivia.domain.model.TriviaQuestion
 import com.dosparta.trivia.domain.repository.GameSessionState
 import com.dosparta.trivia.domain.repository.IGameSessionRepository
 import com.dosparta.trivia.domain.repository.ITriviaRepository
+import com.dosparta.trivia.domain.usecase.ClearGameSessionUseCase
 import com.dosparta.trivia.domain.usecase.FinishGameUseCase
 import com.dosparta.trivia.domain.usecase.LoadCategoriesUseCase
+import com.dosparta.trivia.domain.usecase.PersistGameSessionUseCase
+import com.dosparta.trivia.domain.usecase.ResolveAppStartupUseCase
 import com.dosparta.trivia.domain.usecase.StartGameSession
 import com.dosparta.trivia.domain.usecase.SubmitAnswerUseCase
 import com.dosparta.trivia.ui.screens.TriviaScreen
@@ -76,7 +79,9 @@ class PersistedSessionStartupTest {
             submitAnswer = SubmitAnswerUseCase(GameEngine()),
             finishGame = FinishGameUseCase(GameEngine()),
             loadCategoriesUseCase = LoadCategoriesUseCase(fakeRepo),
-            gameSessionRepository = fakeSessionRepo
+            resolveStartupUseCase = ResolveAppStartupUseCase(fakeSessionRepo),
+            persistGameSessionUseCase = PersistGameSessionUseCase(fakeSessionRepo),
+            clearGameSessionUseCase = ClearGameSessionUseCase(fakeSessionRepo)
         )
 
         composeRule.setContent {

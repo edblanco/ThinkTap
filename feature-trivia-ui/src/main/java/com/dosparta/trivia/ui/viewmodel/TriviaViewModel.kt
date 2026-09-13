@@ -4,12 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dosparta.trivia.domain.game.GameResult
 import com.dosparta.trivia.domain.game.GameSession
+import com.dosparta.trivia.domain.game.StartupDecision
 import com.dosparta.trivia.domain.model.TriviaCategory
 import com.dosparta.trivia.domain.model.TriviaConfig
 import com.dosparta.trivia.domain.model.TriviaQuestion
-import com.dosparta.trivia.domain.repository.IGameSessionRepository
+import com.dosparta.trivia.domain.usecase.ClearGameSessionUseCase
 import com.dosparta.trivia.domain.usecase.FinishGameUseCase
 import com.dosparta.trivia.domain.usecase.LoadCategoriesUseCase
+import com.dosparta.trivia.domain.usecase.PersistGameSessionUseCase
+import com.dosparta.trivia.domain.usecase.ResolveAppStartupUseCase
 import com.dosparta.trivia.domain.usecase.StartGameSession
 import com.dosparta.trivia.domain.usecase.SubmitAnswerUseCase
 import com.dosparta.trivia.ui.R
@@ -49,7 +52,9 @@ class TriviaViewModel @Inject constructor(
     private val submitAnswer: SubmitAnswerUseCase,
     private val finishGame: FinishGameUseCase,
     private val loadCategoriesUseCase: LoadCategoriesUseCase,
-    private val gameSessionRepository: IGameSessionRepository
+    private val resolveStartupUseCase: ResolveAppStartupUseCase,
+    private val persistGameSessionUseCase: PersistGameSessionUseCase,
+    private val clearGameSessionUseCase: ClearGameSessionUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<TriviaUiState>(TriviaUiState.Idle)
@@ -83,31 +88,31 @@ class TriviaViewModel @Inject constructor(
         viewModelScope.launch {
             _startupState.value = StartupUiState.Loading
 
-            val restoredState = try {
-                gameSessionRepository.getActiveSession()
+            val startupDecision = try {
+                resolveStartupUseCase()
             } catch (e: CancellationException) {
                 bootstrapped = false
                 return@launch
             } catch (e: Exception) {
-                null
+                StartupDecision.LoadCategories
             }
 
-            if (restoredState != null) {
-                val activeElapsedMillis = normalizePersistedElapsedMillis(restoredState.activeElapsedMillis)
-                replayQuestions = restoredState.questions
-                _uiState.value = TriviaUiState.Game(
-                    GameSession(
-                        questions = restoredState.questions,
-                        currentIndex = restoredState.currentIndex,
-                        correctCount = restoredState.correctCount,
-                        startTimeMillis = System.currentTimeMillis() - activeElapsedMillis
+            when (startupDecision) {
+                is StartupDecision.RestoreGame -> {
+                    val activeElapsedMillis = normalizePersistedElapsedMillis(startupDecision.session.activeElapsedMillis)
+                    replayQuestions = startupDecision.session.questions
+                    _uiState.value = TriviaUiState.Game(
+                        GameSession(
+                            questions = startupDecision.session.questions,
+                            currentIndex = startupDecision.session.currentIndex,
+                            correctCount = startupDecision.session.correctCount,
+                            startTimeMillis = System.currentTimeMillis() - activeElapsedMillis
+                        )
                     )
-                )
-                _startupState.value = StartupUiState.NavigateToTrivia
-                return@launch
+                    _startupState.value = StartupUiState.NavigateToTrivia
+                }
+                StartupDecision.LoadCategories -> loadCategoriesInternal(updateStartupState = true)
             }
-
-            loadCategoriesInternal(updateStartupState = true)
         }
     }
 
@@ -246,7 +251,7 @@ class TriviaViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val activeElapsedMillis = activeElapsedMillisOverride ?: calculateActiveElapsedMillis(session)
-                gameSessionRepository.saveGameSession(
+                persistGameSessionUseCase(
                     questions = session.questions,
                     currentIndex = session.currentIndex,
                     correctCount = session.correctCount,
@@ -283,7 +288,7 @@ class TriviaViewModel @Inject constructor(
     private fun clearGameSessionAsync() {
         viewModelScope.launch {
             try {
-                gameSessionRepository.clearActiveSession()
+                clearGameSessionUseCase()
             } catch (e: Exception) {
                 // Silently fail - doesn't affect UI
             }
@@ -295,7 +300,7 @@ class TriviaViewModel @Inject constructor(
         cancelPendingLoad()
         pausedElapsedMillis = null
         viewModelScope.launch {
-            gameSessionRepository.clearActiveSession()
+            clearGameSessionUseCase()
         }
         if (_categories.value.isEmpty()) {
             loadCategories()
