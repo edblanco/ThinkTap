@@ -1,8 +1,10 @@
 package com.dosparta.trivia.ui.screens
 
+import android.app.TimePickerDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -27,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -35,6 +39,7 @@ import com.dosparta.trivia.domain.model.TriviaConfig
 import com.dosparta.trivia.ui.R
 import com.dosparta.trivia.ui.UiText
 import com.dosparta.trivia.ui.components.ErrorScreen
+import java.util.Locale
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,9 +47,15 @@ import kotlin.math.roundToInt
 fun SetupScreen(
     categories: List<TriviaCategory>,
     categoriesError: UiText?,
+    reminderEnabled: Boolean,
+    reminderHour: Int,
+    reminderMinute: Int,
     onStartGame: (TriviaConfig) -> Unit,
-    onRetryLoadCategories: () -> Unit
+    onRetryLoadCategories: () -> Unit,
+    onReminderEnabledChange: (Boolean) -> Unit,
+    onReminderTimeChange: (Int, Int) -> Unit
 ) {
+    val context = LocalContext.current
     var selectedAmount by remember { mutableIntStateOf(10) }
     var selectedCategoryId by remember { mutableStateOf<Int?>(null) }
     var selectedDifficulty by remember { mutableStateOf("mixed") }
@@ -183,6 +194,48 @@ fun SetupScreen(
                                 }
                             )
                         }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.daily_reminder),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Switch(
+                        checked = reminderEnabled,
+                        onCheckedChange = onReminderEnabledChange,
+                        modifier = Modifier.testTag("daily_reminder_toggle")
+                    )
+                }
+
+                if (reminderEnabled) {
+                    OutlinedButton(
+                        onClick = {
+                            TimePickerDialog(
+                                context,
+                                { _, hourOfDay, minute ->
+                                    onReminderTimeChange(hourOfDay, minute)
+                                },
+                                reminderHour,
+                                reminderMinute,
+                                true
+                            ).show()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("daily_reminder_time_button")
+                    ) {
+                        Text(
+                            text = stringResource(
+                                R.string.daily_reminder_time,
+                                String.format(Locale.getDefault(), "%02d:%02d", reminderHour, reminderMinute)
+                            )
+                        )
                     }
                 }
 

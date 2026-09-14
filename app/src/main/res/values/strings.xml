@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Trivia Game 2</string>
+    <string name="notification_permission_denied">Notification permission is required to enable daily reminders.</string>
+    <string name="daily_reminder_channel_name">Daily Quiz Reminder</string>
+    <string name="daily_reminder_channel_description">Reminds you to play your daily trivia quiz.</string>
+    <string name="daily_reminder_title">Time for your daily quiz!</string>
+    <string name="daily_reminder_body">Come back and challenge yourself with a new trivia session.</string>
 </resources>

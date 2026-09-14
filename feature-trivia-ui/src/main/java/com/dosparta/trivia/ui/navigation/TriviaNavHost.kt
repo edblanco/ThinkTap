@@ -24,7 +24,13 @@ private const val ROUTE_RESULT = "result/{totalQuestions}/{correctAnswers}/{dura
  * Hosts the navigation graph for the trivia feature using Compose Navigation and Hilt.
  */
 @Composable
-fun TriviaNavHost() {
+fun TriviaNavHost(
+    reminderEnabled: Boolean = false,
+    reminderHour: Int = 19,
+    reminderMinute: Int = 0,
+    onReminderEnabledChange: (Boolean) -> Unit = {},
+    onReminderTimeChange: (Int, Int) -> Unit = { _, _ -> }
+) {
     val navController = rememberNavController()
     val viewModel: TriviaViewModel = hiltViewModel()
     val categories = viewModel.categories.collectAsState().value
@@ -68,6 +74,9 @@ fun TriviaNavHost() {
             SetupScreen(
                 categories = categories,
                 categoriesError = categoriesError,
+                reminderEnabled = reminderEnabled,
+                reminderHour = reminderHour,
+                reminderMinute = reminderMinute,
                 onStartGame = { config ->
                     viewModel.loadQuestions(config)
                     navController.navigate(ROUTE_TRIVIA) {
@@ -76,7 +85,9 @@ fun TriviaNavHost() {
                 },
                 onRetryLoadCategories = {
                     viewModel.loadCategories()
-                }
+                },
+                onReminderEnabledChange = onReminderEnabledChange,
+                onReminderTimeChange = onReminderTimeChange
             )
         }
 

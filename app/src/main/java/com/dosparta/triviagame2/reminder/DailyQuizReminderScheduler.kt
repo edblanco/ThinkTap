@@ -1,0 +1,71 @@
+package com.dosparta.triviagame2.reminder
+
+import android.content.Context
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import java.util.Calendar
+import java.util.concurrent.TimeUnit
+
+class DailyQuizReminderScheduler(
+    context: Context
+) {
+    private val workManager = WorkManager.getInstance(context)
+
+    fun scheduleDaily(hour: Int, minute: Int) {
+        require(hour in 0..23) { "Hour must be between 0 and 23." }
+        require(minute in 0..59) { "Minute must be between 0 and 59." }
+
+        val request = PeriodicWorkRequestBuilder<DailyQuizReminderWorker>(
+            repeatInterval = 24,
+            repeatIntervalTimeUnit = TimeUnit.HOURS,
+            flexTimeInterval = 1,
+            flexTimeIntervalUnit = TimeUnit.HOURS
+        )
+            .setInitialDelay(calculateInitialDelayMillis(hour, minute), TimeUnit.MILLISECONDS)
+            .build()
+
+        workManager.enqueueUniquePeriodicWork(
+            WORK_NAME,
+            ExistingPeriodicWorkPolicy.UPDATE,
+            request
+        )
+    }
+
+    fun cancelDaily() {
+        workManager.cancelUniqueWork(WORK_NAME)
+    }
+
+    fun rescheduleFromSettings(settings: ReminderSettings) {
+        if (settings.enabled) {
+            scheduleDaily(settings.hour, settings.minute)
+        } else {
+            cancelDaily()
+        }
+    }
+
+    companion object {
+        const val WORK_NAME = "daily-quiz-reminder-work"
+
+        internal fun calculateInitialDelayMillis(
+            hour: Int,
+            minute: Int,
+            nowMillis: Long = System.currentTimeMillis()
+        ): Long {
+            val now = Calendar.getInstance().apply {
+                timeInMillis = nowMillis
+            }
+            val nextRun = Calendar.getInstance().apply {
+                timeInMillis = nowMillis
+                set(Calendar.HOUR_OF_DAY, hour)
+                set(Calendar.MINUTE, minute)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+                if (timeInMillis <= now.timeInMillis) {
+                    add(Calendar.DAY_OF_YEAR, 1)
+                }
+            }
+            return (nextRun.timeInMillis - now.timeInMillis).coerceAtLeast(0L)
+        }
+    }
+}

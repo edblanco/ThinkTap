@@ -198,10 +198,15 @@ fun TriviaScreen(
         TriviaUiState.Idle -> SetupScreen(
             categories = categories,
             categoriesError = null,
+            reminderEnabled = false,
+            reminderHour = 19,
+            reminderMinute = 0,
             onStartGame = { config ->
                 viewModel.loadQuestions(config)
             },
-            onRetryLoadCategories = { viewModel.loadCategories() }
+            onRetryLoadCategories = { viewModel.loadCategories() },
+            onReminderEnabledChange = {},
+            onReminderTimeChange = { _, _ -> }
         )
     }
 }
