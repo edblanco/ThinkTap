@@ -29,40 +29,46 @@ subprojects {
     }
 }
 
-// Aggregate coverage report across all modules
+// Aggregate coverage report for the app's business logic layer only.
+// This keeps the summary aligned with the code that is meaningful to test and avoids
+// counting generated database, DI, and Compose-only UI classes in the metric.
+val coverageProjects = listOf(
+    project(":trivia-domain")
+)
+
 tasks.register<JacocoReport>("jacocoRootReport") {
     group = "verification"
-    description = "Runs all JVM tests and generates a combined JaCoCo coverage report."
+    description = "Generates a combined JaCoCo coverage report for the project's business logic layer."
 
-    // Ensure each subproject's JVM test tasks run first
-    dependsOn(subprojects.flatMap { proj ->
+    dependsOn(coverageProjects.flatMap { proj ->
         proj.tasks.withType<Test>()
     })
 
-    // Enable HTML output
     reports {
         html.required.set(true)
     }
 
-    // Collect source directories from each module
-    sourceDirectories.setFrom(files(subprojects.map { proj ->
+    sourceDirectories.setFrom(files(coverageProjects.map { proj ->
         proj.projectDir.resolve("src/main/java")
     }))
 
-    // Collect compiled class files, only instrument our packages
-    classDirectories.setFrom(files(subprojects.map { proj ->
+    classDirectories.setFrom(files(coverageProjects.map { proj ->
         fileTree(mapOf(
-            "dir" to proj.layout.buildDirectory.dir("tmp/kotlin-classes/debug").get().asFile,
-            "include" to listOf("**/com/dosparta/**/*.class"),
-            "exclude" to listOf("**/sun/**", "**/org/robolectric/**")
+            "dir" to proj.layout.buildDirectory.dir("intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes").get().asFile,
+            "include" to listOf("**/*.class"),
+            "exclude" to listOf(
+                "**/*Test*.class",
+                "**/R.class",
+                "**/R$*.class",
+                "**/BuildConfig.class",
+                "**/Hilt_*.class",
+                "**/Dagger*",
+                "**/Generated*"
+            )
         ))
     }))
 
-    // Collect execution data (.exec, coverage.ec) only from JVM tests
-    executionData.setFrom(files(subprojects.map { proj ->
-        fileTree(mapOf(
-            "dir" to proj.layout.buildDirectory.dir("jacoco").get().asFile,
-            "include" to listOf("*.exec", "*.ec")
-        ))
+    executionData.setFrom(files(coverageProjects.map { proj ->
+        proj.layout.buildDirectory.file("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec").get().asFile
     }))
 }
