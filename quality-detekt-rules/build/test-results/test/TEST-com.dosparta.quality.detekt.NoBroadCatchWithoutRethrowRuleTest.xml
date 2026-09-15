@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.dosparta.quality.detekt.NoBroadCatchWithoutRethrowRuleTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-09-15T21:43:43.894Z" hostname="MacBookPro.fritz.box" time="0.014">
+  <properties/>
+  <testcase name="allows broad catch that rethrows" classname="com.dosparta.quality.detekt.NoBroadCatchWithoutRethrowRuleTest" time="0.008"/>
+  <testcase name="reports unused broad catch" classname="com.dosparta.quality.detekt.NoBroadCatchWithoutRethrowRuleTest" time="0.004"/>
+  <testcase name="allows broad catch that uses exception" classname="com.dosparta.quality.detekt.NoBroadCatchWithoutRethrowRuleTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

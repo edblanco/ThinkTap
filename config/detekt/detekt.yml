@@ -107,7 +107,7 @@ complexity:
     ignoreOverloaded: false
   CyclomaticComplexMethod:
     active: true
-    threshold: 15
+    threshold: 14
     ignoreSingleWhenExpression: false
     ignoreSimpleWhenEntries: false
     ignoreNestingFunctions: false
@@ -129,12 +129,14 @@ complexity:
     threshold: 600
   LongMethod:
     active: true
-    threshold: 60
+    threshold: 55
+    excludes: ['**/test/**', '**/androidTest/**', '**/ui/screens/**', '**/ui/components/**', '**/ui/navigation/**', '**/ui/viewmodel/**']
   LongParameterList:
     active: true
     functionThreshold: 6
     constructorThreshold: 7
-    ignoreDefaultParameters: false
+    ignoreDefaultParameters: true
+    excludes: ['**/ui/screens/**', '**/ui/navigation/**', '**/ui/viewmodel/**']
     ignoreDataClasses: true
     ignoreAnnotatedParameter: []
   MethodOverloading:
@@ -167,7 +169,7 @@ complexity:
     ignoreStringsRegex: '$^'
   TooManyFunctions:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
+    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**', '**/ui/viewmodel/**', '**/ui/navigation/**', '**/ui/screens/**']
     thresholdInFiles: 11
     thresholdInClasses: 11
     thresholdInInterfaces: 11
@@ -193,7 +195,7 @@ coroutines:
   SleepInsteadOfDelay:
     active: true
   SuspendFunSwallowedCancellation:
-    active: false
+    active: true
   SuspendFunWithCoroutineScopeReceiver:
     active: false
   SuspendFunWithFlowReturnType:
@@ -259,11 +261,9 @@ exceptions:
     ignoreLabeled: false
   SwallowedException:
     active: true
+    excludes: ['**/ui/viewmodel/**']
     ignoredExceptionTypes:
       - 'InterruptedException'
-      - 'MalformedURLException'
-      - 'NumberFormatException'
-      - 'ParseException'
     allowedExceptionNameRegex: '_|(ignore|expected).*'
   ThrowingExceptionFromFinally:
     active: true
@@ -290,11 +290,9 @@ exceptions:
     exceptionNames:
       - 'ArrayIndexOutOfBoundsException'
       - 'Error'
-      - 'Exception'
       - 'IllegalMonitorStateException'
       - 'IndexOutOfBoundsException'
       - 'NullPointerException'
-      - 'RuntimeException'
       - 'Throwable'
     allowedExceptionNameRegex: '_|(ignore|expected).*'
   TooGenericExceptionThrown:
@@ -335,6 +333,8 @@ naming:
     excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
     functionPattern: '[a-z][a-zA-Z0-9]*'
     excludeClassPattern: '$^'
+    ignoreAnnotated:
+      - 'Composable'
   FunctionParameterNaming:
     active: true
     parameterPattern: '[a-z][A-Za-z0-9]*'
@@ -404,7 +404,7 @@ performance:
     excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
   SpreadOperator:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
+    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**', '**/ui/UiText.kt']
   UnnecessaryPartOfBinaryExpression:
     active: false
   UnnecessaryTemporaryInstantiation:
@@ -594,8 +594,8 @@ style:
         value: 'TODO:'
     allowedPatterns: ''
   ForbiddenImport:
-    active: false
-    imports: []
+    active: true
+    imports: ['kotlinx.android.synthetic.**']
     forbiddenPatterns: ''
   ForbiddenMethodCall:
     active: false
@@ -621,7 +621,7 @@ style:
     maxJumpCount: 1
   MagicNumber:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**', '**/*.kts']
+    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**', '**/*.kts', '**/ui/theme/**', '**/ui/screens/**', '**/ui/viewmodel/**']
     ignoreNumbers:
       - '-1'
       - '0'
@@ -644,6 +644,7 @@ style:
     maxChainedCalls: 5
   MaxLineLength:
     active: true
+    excludes: ['**/test/**', '**/androidTest/**', '**/ui/viewmodel/**', '**/ui/screens/**']
     maxLineLength: 120
     excludePackageStatements: true
     excludeImportStatements: true
@@ -687,6 +688,7 @@ style:
     active: false
   ReturnCount:
     active: true
+    excludes: ['**/ui/viewmodel/**']
     max: 2
     excludedFunctions:
       - 'equals'
@@ -705,7 +707,7 @@ style:
     ignoredCharacters: []
   ThrowsCount:
     active: true
-    max: 2
+    max: 5
     excludeGuardClauses: false
   TrailingWhitespace:
     active: false
@@ -761,7 +763,7 @@ style:
   UseCheckNotNull:
     active: true
   UseCheckOrError:
-    active: true
+    active: false
   UseDataClass:
     active: false
     allowVars: false

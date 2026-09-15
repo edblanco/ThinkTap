@@ -23,7 +23,16 @@ class DailyQuizReminderSchedulerTest {
 
     @Test
     fun `calculateInitialDelayMillis returns same-day delay when target time is ahead`() {
-        val nowMillis = utcMillis(2026, Calendar.JANUARY, 1, 10, 15, 0)
+        val nowMillis = Calendar.getInstance(TimeZone.getTimeZone("UTC")).run {
+            set(Calendar.YEAR, 2026)
+            set(Calendar.MONTH, Calendar.JANUARY)
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 10)
+            set(Calendar.MINUTE, 15)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            timeInMillis
+        }
 
         val delay = DailyQuizReminderScheduler.calculateInitialDelayMillis(
             hour = 19,
@@ -36,7 +45,16 @@ class DailyQuizReminderSchedulerTest {
 
     @Test
     fun `calculateInitialDelayMillis returns next-day delay when target time passed`() {
-        val nowMillis = utcMillis(2026, Calendar.JANUARY, 1, 20, 0, 0)
+        val nowMillis = Calendar.getInstance(TimeZone.getTimeZone("UTC")).run {
+            set(Calendar.YEAR, 2026)
+            set(Calendar.MONTH, Calendar.JANUARY)
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 20)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            timeInMillis
+        }
 
         val delay = DailyQuizReminderScheduler.calculateInitialDelayMillis(
             hour = 19,
@@ -45,25 +63,5 @@ class DailyQuizReminderSchedulerTest {
         )
 
         assertEquals(23 * 60 * 60 * 1000L, delay)
-    }
-
-    private fun utcMillis(
-        year: Int,
-        month: Int,
-        day: Int,
-        hour: Int,
-        minute: Int,
-        second: Int
-    ): Long {
-        return Calendar.getInstance(TimeZone.getTimeZone("UTC")).run {
-            set(Calendar.YEAR, year)
-            set(Calendar.MONTH, month)
-            set(Calendar.DAY_OF_MONTH, day)
-            set(Calendar.HOUR_OF_DAY, hour)
-            set(Calendar.MINUTE, minute)
-            set(Calendar.SECOND, second)
-            set(Calendar.MILLISECOND, 0)
-            timeInMillis
-        }
     }
 }

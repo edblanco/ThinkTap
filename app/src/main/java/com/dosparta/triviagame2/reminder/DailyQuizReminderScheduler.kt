@@ -13,13 +13,13 @@ class DailyQuizReminderScheduler(
     private val workManager = WorkManager.getInstance(context)
 
     fun scheduleDaily(hour: Int, minute: Int) {
-        require(hour in 0..23) { "Hour must be between 0 and 23." }
-        require(minute in 0..59) { "Minute must be between 0 and 59." }
+        require(hour in MIN_HOUR..MAX_HOUR) { "Hour must be between 0 and 23." }
+        require(minute in MIN_MINUTE..MAX_MINUTE) { "Minute must be between 0 and 59." }
 
         val request = PeriodicWorkRequestBuilder<DailyQuizReminderWorker>(
-            repeatInterval = 24,
+            repeatInterval = REPEAT_INTERVAL_HOURS,
             repeatIntervalTimeUnit = TimeUnit.HOURS,
-            flexTimeInterval = 1,
+            flexTimeInterval = FLEX_INTERVAL_HOURS,
             flexTimeIntervalUnit = TimeUnit.HOURS
         )
             .setInitialDelay(calculateInitialDelayMillis(hour, minute), TimeUnit.MILLISECONDS)
@@ -46,6 +46,12 @@ class DailyQuizReminderScheduler(
 
     companion object {
         const val WORK_NAME = "daily-quiz-reminder-work"
+        private const val MIN_HOUR = 0
+        private const val MAX_HOUR = 23
+        private const val MIN_MINUTE = 0
+        private const val MAX_MINUTE = 59
+        private const val REPEAT_INTERVAL_HOURS = 24L
+        private const val FLEX_INTERVAL_HOURS = 1L
 
         internal fun calculateInitialDelayMillis(
             hour: Int,

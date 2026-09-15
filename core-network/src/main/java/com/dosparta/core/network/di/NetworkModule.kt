@@ -34,10 +34,10 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(loggingInterceptor: LoggingInterceptor): OkHttpClient =
         OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
-            .writeTimeout(15, TimeUnit.SECONDS)
-            .callTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .writeTimeout(WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .callTimeout(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .addInterceptor(loggingInterceptor)
             .retryOnConnectionFailure(true)
             .build()
@@ -54,4 +54,9 @@ object NetworkModule {
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .client(client)
             .build()
+
+    private const val CONNECT_TIMEOUT_SECONDS = 15L
+    private const val READ_TIMEOUT_SECONDS = 15L
+    private const val WRITE_TIMEOUT_SECONDS = 15L
+    private const val CALL_TIMEOUT_SECONDS = 30L
 }

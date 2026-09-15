@@ -4,6 +4,7 @@ plugins {
 
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.compose) apply false
+    alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.android.hilt) apply false
     alias(libs.plugins.devtools.ksp) apply false
@@ -25,7 +26,17 @@ subprojects {
         config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
         buildUponDefaultConfig = true
         parallel = true
-        ignoreFailures = true
+        ignoreFailures = false
+    }
+
+    if (name != "quality-detekt-rules") {
+        dependencies {
+            add("detektPlugins", project(":quality-detekt-rules"))
+        }
+    }
+
+    tasks.matching { it.name == "check" }.configureEach {
+        dependsOn("detekt")
     }
 }
 

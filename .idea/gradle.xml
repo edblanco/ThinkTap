@@ -14,6 +14,7 @@
             <option value="$PROJECT_DIR$/core-network" />
             <option value="$PROJECT_DIR$/data-trivia" />
             <option value="$PROJECT_DIR$/feature-trivia-ui" />
+            <option value="$PROJECT_DIR$/quality-detekt-rules" />
             <option value="$PROJECT_DIR$/trivia-domain" />
           </set>
         </option>

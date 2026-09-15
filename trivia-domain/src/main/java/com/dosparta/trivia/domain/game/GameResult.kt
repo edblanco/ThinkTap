@@ -19,21 +19,28 @@ data class GameResult(
     /** The percentage score (0.0–100.0) */
     val scorePercentage: Double
         get() = if (totalQuestions > 0)
-            correctAnswers.toDouble() / totalQuestions * 100
+            correctAnswers.toDouble() / totalQuestions * PERCENT_SCALE
         else
             0.0
 
     /** A human-readable duration string that handles longer sessions clearly and consistently. */
     fun formattedDuration(): String {
-        val totalSeconds = kotlin.math.max(0L, durationMillis / 1_000)
-        val hours = totalSeconds / 3_600
-        val minutes = (totalSeconds % 3_600) / 60
-        val seconds = totalSeconds % 60
+        val totalSeconds = kotlin.math.max(0L, durationMillis / MILLIS_IN_SECOND)
+        val hours = totalSeconds / SECONDS_IN_HOUR
+        val minutes = (totalSeconds % SECONDS_IN_HOUR) / SECONDS_IN_MINUTE
+        val seconds = totalSeconds % SECONDS_IN_MINUTE
 
         return if (hours > 0) {
             "%d:%02d:%02d".format(hours, minutes, seconds)
         } else {
             "%d:%02d".format(minutes, seconds)
         }
+    }
+
+    private companion object {
+        const val PERCENT_SCALE = 100
+        const val MILLIS_IN_SECOND = 1_000L
+        const val SECONDS_IN_MINUTE = 60L
+        const val SECONDS_IN_HOUR = 3_600L
     }
 }

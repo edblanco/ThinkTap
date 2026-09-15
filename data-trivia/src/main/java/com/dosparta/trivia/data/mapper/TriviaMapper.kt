@@ -24,16 +24,11 @@ object TriviaMapper {
 
     /** Map a single DTO to the domain model */
     fun fromDto(dto: TriviaQuestionDto): TriviaQuestion {
-        val decodedCategory = htmlDecode(dto.category).takeIf { it.isNotBlank() }
-            ?: throw IllegalStateException("Trivia question category is missing.")
-        val decodedType = htmlDecode(dto.type).takeIf { it.isNotBlank() }
-            ?: throw IllegalStateException("Trivia question type is missing.")
-        val decodedDifficulty = htmlDecode(dto.difficulty).takeIf { it.isNotBlank() }
-            ?: throw IllegalStateException("Trivia question difficulty is missing.")
-        val decodedQuestion = htmlDecode(dto.question).takeIf { it.isNotBlank() }
-            ?: throw IllegalStateException("Trivia question text is missing.")
-        val decodedCorrect = htmlDecode(dto.correctAnswer).takeIf { it.isNotBlank() }
-            ?: throw IllegalStateException("Trivia question correct answer is missing.")
+        val decodedCategory = decodeRequired(dto.category, "Trivia question category is missing.")
+        val decodedType = decodeRequired(dto.type, "Trivia question type is missing.")
+        val decodedDifficulty = decodeRequired(dto.difficulty, "Trivia question difficulty is missing.")
+        val decodedQuestion = decodeRequired(dto.question, "Trivia question text is missing.")
+        val decodedCorrect = decodeRequired(dto.correctAnswer, "Trivia question correct answer is missing.")
         val decodedIncorrects = dto.incorrectAnswers.map { htmlDecode(it) }.filter { it.isNotBlank() }
 
         if (decodedIncorrects.isEmpty() && dto.incorrectAnswers.isNotEmpty()) {
@@ -57,8 +52,7 @@ object TriviaMapper {
     }
 
     fun fromCategoryDto(dto: TriviaCategoryDto): TriviaCategory {
-        val decodedName = htmlDecode(dto.name).takeIf { it.isNotBlank() }
-            ?: throw IllegalStateException("Trivia category name is missing.")
+        val decodedName = decodeRequired(dto.name, "Trivia category name is missing.")
 
         return TriviaCategory(
             id = dto.id,
@@ -69,4 +63,12 @@ object TriviaMapper {
     /** Utility to turn HTML‐encoded strings into plain text */
     private fun htmlDecode(text: String): String =
         Html.fromHtml(text, Html.FROM_HTML_MODE_LEGACY).toString()
+
+    private fun decodeRequired(text: String, errorMessage: String): String {
+        val decoded = htmlDecode(text).trim()
+        if (decoded.isBlank()) {
+            throw IllegalStateException(errorMessage)
+        }
+        return decoded
+    }
 }
