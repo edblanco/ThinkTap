@@ -18,9 +18,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -33,6 +32,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,6 +52,7 @@ import com.dosparta.core.ui.components.TriviaCard
 import com.dosparta.core.ui.components.TriviaMetaChip
 import com.dosparta.core.ui.components.TriviaProgressBar
 import com.dosparta.core.ui.components.TriviaScreenScaffold
+import com.dosparta.core.ui.theme.LocalReducedMotion
 import com.dosparta.core.ui.theme.quizColors
 import com.dosparta.trivia.domain.game.GameResult
 import com.dosparta.trivia.domain.game.GameSession
@@ -64,6 +65,7 @@ import com.dosparta.trivia.ui.preview.PreviewFixtures
 import com.dosparta.trivia.ui.preview.TriviaPreviewTheme
 import com.dosparta.trivia.ui.viewmodel.TriviaUiState
 import com.dosparta.trivia.ui.viewmodel.TriviaViewModel
+import kotlinx.coroutines.flow.collectLatest
 
 private const val ANSWER_AUTO_ADVANCE_DELAY_MILLIS = 5_000L
 private const val STATE_DEFAULT = "default"
@@ -147,9 +149,7 @@ internal fun TriviaGameContent(
     val selectedAnswerState = remember(session.currentIndex, question?.question) {
         mutableStateOf<String?>(null)
     }
-    val nextQuestionButtonBringIntoViewRequester = remember(session.currentIndex, question?.question) {
-        BringIntoViewRequester()
-    }
+    val scrollState = rememberScrollState()
 
     if (question == null) {
         ErrorScreen(message = UiText.StringResource(R.string.error_no_valid_question), onRetry = onRetry)
@@ -161,7 +161,7 @@ internal fun TriviaGameContent(
             modifier = Modifier
                 .fillMaxSize()
                 .testTag("trivia_screen")
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -187,7 +187,7 @@ internal fun TriviaGameContent(
                 selectedAnswer = selectedAnswerState.value,
                 onAnswerSelected = { selectedAnswerState.value = it },
                 onAnswerConfirmed = onAnswerConfirmed,
-                bringIntoViewRequester = nextQuestionButtonBringIntoViewRequester
+                scrollState = scrollState
             )
         }
     }
@@ -232,6 +232,8 @@ private fun QuestionHeader(session: GameSession, question: TriviaQuestion) {
  * Once an answer is chosen the correct and incorrect options reveal themselves and a countdown
  * starts; when it completes the answer is confirmed automatically.
  *
+ * @param scrollState the enclosing scroll state, scrolled to the bottom to reveal the confirm
+ *   button once an answer is chosen
  * @param autoAdvanceDelayMillis how long the countdown runs before confirming
  */
 @Composable
@@ -240,15 +242,21 @@ internal fun AnswerOptionsSection(
     selectedAnswer: String?,
     onAnswerSelected: (String) -> Unit,
     onAnswerConfirmed: (String) -> Unit,
-    bringIntoViewRequester: BringIntoViewRequester,
+    scrollState: ScrollState,
     autoAdvanceDelayMillis: Long = ANSWER_AUTO_ADVANCE_DELAY_MILLIS
 ) {
     val autoAdvanceProgress = remember(question.question) { Animatable(0f) }
+    val reducedMotion = LocalReducedMotion.current
+
+    ScrollToConfirmButtonEffect(
+        active = selectedAnswer != null,
+        scrollState = scrollState,
+        reducedMotion = reducedMotion
+    )
 
     LaunchedEffect(selectedAnswer) {
         autoAdvanceProgress.snapTo(0f)
         val answer = selectedAnswer ?: return@LaunchedEffect
-        bringIntoViewRequester.bringIntoView()
         autoAdvanceProgress.animateTo(
             targetValue = 1f,
             animationSpec = tween(
@@ -288,10 +296,39 @@ internal fun AnswerOptionsSection(
                     .padding(top = 8.dp)
                     .fillMaxWidth()
                     .height(NextButtonHeight)
-                    .bringIntoViewRequester(bringIntoViewRequester)
                     .testTag("next_question_button")
             )
         }
+    }
+}
+
+/**
+ * Scrolls the enclosing container to the bottom while [active], keeping the confirm button in
+ * view as it appears.
+ *
+ * The button is revealed by an expand animation, so the bottom of the content keeps moving for as
+ * long as that animation runs. Rather than scrolling once — which would aim at a position that is
+ * immediately stale — this follows `maxValue` and restarts the scroll each time it grows, so the
+ * view always settles on the final bottom.
+ */
+@Composable
+private fun ScrollToConfirmButtonEffect(
+    active: Boolean,
+    scrollState: ScrollState,
+    reducedMotion: Boolean
+) {
+    LaunchedEffect(active, scrollState, reducedMotion) {
+        if (!active) return@LaunchedEffect
+        snapshotFlow { scrollState.maxValue }
+            .collectLatest { maxValue ->
+                // maxValue is Int.MAX_VALUE until the content has been measured.
+                if (maxValue == 0 || maxValue == Int.MAX_VALUE) return@collectLatest
+                if (reducedMotion) {
+                    scrollState.scrollTo(maxValue)
+                } else {
+                    scrollState.animateScrollTo(maxValue)
+                }
+            }
     }
 }
 
@@ -366,7 +403,7 @@ private fun UnansweredOptionsPreview() {
             selectedAnswer = null,
             onAnswerSelected = {},
             onAnswerConfirmed = {},
-            bringIntoViewRequester = remember { BringIntoViewRequester() }
+            scrollState = rememberScrollState()
         )
     }
 }
@@ -380,7 +417,7 @@ private fun CorrectAnswerOptionsPreview() {
             selectedAnswer = PreviewFixtures.question.correctAnswer,
             onAnswerSelected = {},
             onAnswerConfirmed = {},
-            bringIntoViewRequester = remember { BringIntoViewRequester() }
+            scrollState = rememberScrollState()
         )
     }
 }
@@ -394,7 +431,7 @@ private fun IncorrectAnswerOptionsPreview() {
             selectedAnswer = PreviewFixtures.question.options.first(),
             onAnswerSelected = {},
             onAnswerConfirmed = {},
-            bringIntoViewRequester = remember { BringIntoViewRequester() }
+            scrollState = rememberScrollState()
         )
     }
 }

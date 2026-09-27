@@ -2,10 +2,16 @@ package com.dosparta.trivia.ui.screens
 
 import android.content.Context
 import android.os.Build
-import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.SemanticsMatcher
@@ -18,6 +24,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.test.core.app.ApplicationProvider
 import com.dosparta.trivia.domain.game.GameResult
@@ -223,7 +230,7 @@ class ScreenTests {
                     selectedAnswer = selectedAnswer.value,
                     onAnswerSelected = { selectedAnswer.value = it },
                     onAnswerConfirmed = { confirmedAnswer = it },
-                    bringIntoViewRequester = remember { BringIntoViewRequester() }
+                    scrollState = rememberScrollState()
                 )
             }
         }
@@ -241,6 +248,41 @@ class ScreenTests {
         )
         composeTestRule.onNodeWithTag("next_question_button").assertIsDisplayed().performClick()
         assertEquals("Salt", confirmedAnswer)
+    }
+
+    @Test
+    fun `selecting an answer scrolls the confirm button into view`() {
+        val question = gameQuestion()
+        val selectedAnswer = mutableStateOf<String?>(null)
+        lateinit var scrollState: ScrollState
+
+        composeTestRule.setContent {
+            TriviaGame2Theme {
+                scrollState = rememberScrollState()
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState)
+                ) {
+                    // Tall enough that the confirm button starts well below the viewport.
+                    Spacer(modifier = Modifier.height(1_200.dp))
+                    AnswerOptionsSection(
+                        question = question,
+                        selectedAnswer = selectedAnswer.value,
+                        onAnswerSelected = { selectedAnswer.value = it },
+                        onAnswerConfirmed = {},
+                        scrollState = scrollState
+                    )
+                }
+            }
+        }
+
+        composeTestRule.onNodeWithText("Salt").performScrollTo().performClick()
+
+        composeTestRule.waitUntil(5_000L) {
+            scrollState.maxValue > 0 && scrollState.value == scrollState.maxValue
+        }
+        composeTestRule.onNodeWithTag("next_question_button").assertIsDisplayed()
     }
 
 }
