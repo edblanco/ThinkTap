@@ -30,4 +30,22 @@
     <string name="daily_reminder">Daily reminder</string>
     <string name="daily_reminder_time">Reminder time: %1$s</string>
     <string name="change_time">Change time</string>
+    <string name="app_title">Trivia Game</string>
+    <string name="difficulty_mixed">Mixed</string>
+    <string name="difficulty_easy">Easy</string>
+    <string name="difficulty_medium">Medium</string>
+    <string name="difficulty_hard">Hard</string>
+    <string name="category_value">Category: %1$s</string>
+    <string name="difficulty_value">Difficulty: %1$s</string>
+    <string name="quiz_progress_description">Question %1$d of %2$d</string>
+    <string name="score_counter_description">%1$d correct out of %2$d</string>
+    <string name="answer_state_correct">Correct answer</string>
+    <string name="answer_state_incorrect">Incorrect answer</string>
+    <string name="loading_questions">Getting your questions ready…</string>
+    <string name="daily_reminder_supporting">A nudge each day to keep your streak going</string>
+    <string name="score_of_total">/ %1$d</string>
+    <string name="result_perfect">Flawless! Every answer correct.</string>
+    <string name="result_great">Great run. Just a few slipped past.</string>
+    <string name="result_good">Solid effort. Keep going.</string>
+    <string name="result_keep_trying">Plenty of room to climb. Try again?</string>
 </resources>

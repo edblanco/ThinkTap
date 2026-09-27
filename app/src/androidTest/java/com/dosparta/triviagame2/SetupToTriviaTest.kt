@@ -96,11 +96,16 @@ class SetupToTriviaTest {
                 SetupScreen(
                     categories = categories,
                     categoriesError = null,
+                    reminderEnabled = false,
+                    reminderHour = 19,
+                    reminderMinute = 0,
                     onStartGame = { config ->
                         viewModel.loadQuestions(config)
                         showTrivia.value = true
                     },
-                    onRetryLoadCategories = {}
+                    onRetryLoadCategories = {},
+                    onReminderEnabledChange = {},
+                    onReminderTimeChange = { _, _ -> }
                 )
             }
         }

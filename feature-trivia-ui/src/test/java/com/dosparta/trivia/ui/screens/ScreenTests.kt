@@ -22,7 +22,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.test.core.app.ApplicationProvider
 import com.dosparta.trivia.domain.game.GameResult
 import com.dosparta.trivia.domain.game.GameSession
-import com.dosparta.core.ui.theme.Purple40
 import com.dosparta.core.ui.theme.TriviaGame2Theme
 import com.dosparta.trivia.domain.model.TriviaQuestion
 import com.dosparta.trivia.ui.R
@@ -120,7 +119,7 @@ class ScreenTests {
     }
 
     @Test
-    fun `shared theme preserves light and dark palettes and typography`() {
+    fun `shared theme preserves brand light and dark palettes and typography`() {
         val dark = mutableStateOf(false)
         var primary = Color.Unspecified
         var fontSize = androidx.compose.ui.unit.TextUnit.Unspecified
@@ -131,12 +130,12 @@ class ScreenTests {
             }
         }
         composeTestRule.runOnIdle {
-            assertEquals(Purple40, primary)
+            assertEquals(Color(0xFF4F46E5), primary)
             assertEquals(16f, fontSize.value)
             dark.value = true
         }
         composeTestRule.runOnIdle {
-            assertEquals(Color(0xFF9DB8FF), primary)
+            assertEquals(Color(0xFFC3C4FF), primary)
             assertEquals(16f, fontSize.value)
         }
     }
@@ -188,12 +187,18 @@ class ScreenTests {
             )
         }
 
-        composeTestRule.onNodeWithText(context.getString(R.string.score_label, 3, 4)).assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.incorrect_label, 1)).assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.percentage_label, "75.0")).assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.time_label, "2:05")).assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.play_again)).assertIsDisplayed().performClick()
-        composeTestRule.onNodeWithText(context.getString(R.string.start_new_game)).assertIsDisplayed().performClick()
+        composeTestRule.onNodeWithText(context.getString(R.string.score_label, 3, 4))
+            .performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.incorrect_label, 1))
+            .performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.percentage_label, "75.0"))
+            .performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.time_label, "2:05"))
+            .performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.play_again))
+            .performScrollTo().assertIsDisplayed().performClick()
+        composeTestRule.onNodeWithText(context.getString(R.string.start_new_game))
+            .performScrollTo().assertIsDisplayed().performClick()
         assertTrue(playAgainClicked)
         assertTrue(startNewGameClicked)
     }
