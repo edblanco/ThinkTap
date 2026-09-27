@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.devtools.ksp)
     alias(libs.plugins.android.hilt)
+    alias(libs.plugins.roborazzi)
     id("dagger.hilt.android.plugin")
 }
 
@@ -46,6 +47,18 @@ kotlin {
     }
 }
 
+// Screenshot goldens are committed, so they must live outside `build/`, which `clean` wipes
+// and `.gitignore` excludes.
+roborazzi {
+    outputDir.set(file("src/test/screenshots"))
+}
+
+// Screenshot regressions should fail the build like any other test, matching the repo's
+// fail-fast stance for Detekt and Lint.
+tasks.named("check") {
+    dependsOn("verifyRoborazziDebug")
+}
+
 dependencies {
     implementation(project(":core-ui"))
     implementation(project(":trivia-domain"))
@@ -75,6 +88,9 @@ dependencies {
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.ui.test.junit4)
+    testImplementation(testFixtures(project(":core-ui")))
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
 
     debugImplementation(libs.ui.test.manifest)
     debugImplementation(libs.androidx.ui.tooling)

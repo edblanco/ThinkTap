@@ -24,20 +24,25 @@ private val LocalQuizColors = staticCompositionLocalOf { LightQuizColors }
  * @param dynamicColor when true, Android 12+ wallpaper colors replace the brand palette. This is
  *   off by default: the quiz has its own visual identity, and dynamic color would otherwise
  *   discard both hand-tuned schemes on most devices.
+ * @param reducedMotion overrides whether animations are suppressed. `null`, the default, detects
+ *   the system setting. Screenshot tests pass `true` so that every animation settles immediately
+ *   and captures are deterministic.
  * @param content the themed content
  */
 @Composable
 fun TriviaGame2Theme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
+    reducedMotion: Boolean? = null,
     content: @Composable () -> Unit
 ) {
     val colorScheme = resolveColorScheme(darkTheme = darkTheme, dynamicColor = dynamicColor)
     val quizColors = if (darkTheme) DarkQuizColors else LightQuizColors
+    val systemReducedMotion = rememberSystemReducedMotion()
 
     CompositionLocalProvider(
         LocalQuizColors provides quizColors,
-        LocalReducedMotion provides rememberSystemReducedMotion()
+        LocalReducedMotion provides (reducedMotion ?: systemReducedMotion)
     ) {
         MaterialTheme(
             colorScheme = colorScheme,

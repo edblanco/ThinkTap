@@ -1,0 +1,2 @@
+# Screenshot-test goldens are binary; never try to diff or merge them as text.
+*.png binary -diff
