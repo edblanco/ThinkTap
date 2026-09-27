@@ -83,5 +83,21 @@ captureScreen("answer_options_correct", advanceTimeMillis = 500L) { … }
 ## Caveats
 
 Goldens are rendered by the host JVM, so font rasterisation can differ across architectures and
-JDK versions. They are currently recorded on developer machines. If CI starts verifying them, it
-must either match that environment or set `roborazzi.compare.changeThreshold`.
+JDK versions. The existing goldens were recorded on developer machines.
+
+## CI verification
+
+[Pull-request CI](ci.md) verifies both screenshot modules on `ubuntu-24.04` (x86_64) with
+Temurin JDK 17. Comparisons are strict: CI does not set a nonzero
+`roborazzi.compare.changeThreshold` and never runs `recordRoborazziDebug`.
+
+For a failure, download the `screenshot-test-reports` artifact from the GitHub Actions run.
+It includes the module test reports, Roborazzi reports, committed baselines, and generated
+comparison images. An ordinary `test` run is not a substitute for this verification job.
+
+Before changing a baseline, inspect the comparison and distinguish an intentional UI change
+from an unintended regression or a confirmed host/JDK rendering difference. If existing
+developer-machine baselines differ only because of the Linux environment, reproduce recording
+on Linux x86_64 with the same JDK and harness settings, review every changed PNG, and commit
+the approved baselines in a deliberate change. Do not automatically accept CI output or
+loosen the comparison threshold to make the build green.
