@@ -16,8 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import com.dosparta.trivia.ui.UiText
 import com.dosparta.trivia.ui.components.ErrorScreen
+import com.dosparta.trivia.ui.preview.PreviewFixtures
+import com.dosparta.trivia.ui.preview.TriviaPreviewTheme
 
 @Composable
 fun LoadingScreen(
@@ -74,4 +78,28 @@ private fun SkeletonBlock(
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
     )
+}
+
+@PreviewLightDark
+@Composable
+private fun LoadingSkeletonPreview() {
+    TriviaPreviewTheme {
+        LoadingScreen(error = null, onRetry = {})
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun LoadingErrorPreview() {
+    TriviaPreviewTheme {
+        LoadingScreen(error = PreviewFixtures.error, onRetry = {})
+    }
+}
+
+@Preview(widthDp = 320, heightDp = 80)
+@Composable
+private fun SkeletonBlockPreview() {
+    TriviaPreviewTheme {
+        SkeletonBlock(modifier = Modifier.padding(12.dp).fillMaxWidth().height(56.dp))
+    }
 }

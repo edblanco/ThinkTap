@@ -44,13 +44,18 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.dosparta.trivia.domain.game.GameResult
+import com.dosparta.trivia.domain.game.GameSession
 import com.dosparta.trivia.domain.model.TriviaQuestion
 import com.dosparta.trivia.ui.R
 import com.dosparta.trivia.ui.UiText
 import com.dosparta.trivia.ui.components.ErrorScreen
 import com.dosparta.trivia.ui.components.LoadingScreen
+import com.dosparta.trivia.ui.preview.PreviewFixtures
+import com.dosparta.trivia.ui.preview.TriviaPreviewTheme
 import com.dosparta.trivia.ui.viewmodel.TriviaUiState
 import com.dosparta.trivia.ui.viewmodel.TriviaViewModel
 import kotlinx.coroutines.delay
@@ -60,11 +65,60 @@ private val CorrectAnswerColor = Color(0xFF2E7D32)
 private val CorrectAnswerContentColor = Color(0xFFFFFFFF)
 private val NextQuestionButtonFillColor = Color(0xFF1D4ED8)
 
+@PreviewLightDark
+@Composable
+private fun TriviaGamePreview() {
+    TriviaPreviewTheme {
+        TriviaGameContent(session = PreviewFixtures.session, onAnswerConfirmed = {}, onRetry = {})
+    }
+}
+
+@Preview(widthDp = 360)
+@Composable
+private fun UnansweredOptionsPreview() {
+    TriviaPreviewTheme {
+        AnswerOptionsSection(
+            question = PreviewFixtures.question,
+            selectedAnswer = null,
+            onAnswerSelected = {},
+            onAnswerConfirmed = {},
+            bringIntoViewRequester = remember { BringIntoViewRequester() }
+        )
+    }
+}
+
+@Preview(widthDp = 360)
+@Composable
+private fun CorrectAnswerOptionsPreview() {
+    TriviaPreviewTheme {
+        AnswerOptionsSection(
+            question = PreviewFixtures.question,
+            selectedAnswer = PreviewFixtures.question.correctAnswer,
+            onAnswerSelected = {},
+            onAnswerConfirmed = {},
+            bringIntoViewRequester = remember { BringIntoViewRequester() }
+        )
+    }
+}
+
+@Preview(widthDp = 360)
+@Composable
+private fun IncorrectAnswerOptionsPreview() {
+    TriviaPreviewTheme {
+        AnswerOptionsSection(
+            question = PreviewFixtures.question,
+            selectedAnswer = PreviewFixtures.question.options.first(),
+            onAnswerSelected = {},
+            onAnswerConfirmed = {},
+            bringIntoViewRequester = remember { BringIntoViewRequester() }
+        )
+    }
+}
+
 /**
  * The main trivia screen, showing questions, handling user answers,
  * and delegating to [onResult] when the game finishes.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TriviaScreen(
     viewModel: TriviaViewModel = hiltViewModel(),
@@ -98,102 +152,11 @@ fun TriviaScreen(
         is TriviaUiState.Result -> {
             // Navigation is triggered in the side effect above; the UI doesn't need to render it.
         }
-        is TriviaUiState.Game -> {
-            val current = state.session
-            val question = current.currentQuestion
-            val selectedAnswerState = remember(current.currentIndex, question?.question) {
-                mutableStateOf<String?>(null)
-            }
-            val nextQuestionButtonBringIntoViewRequester = remember(current.currentIndex, question?.question) {
-                BringIntoViewRequester()
-            }
-            val selectedAnswer = selectedAnswerState.value
-
-            if (question == null) {
-                ErrorScreen(
-                    message = UiText.StringResource(R.string.error_no_valid_question),
-                    onRetry = { viewModel.loadQuestions() }
-                )
-                return
-            }
-
-            Scaffold(
-                modifier = Modifier.testTag("trivia_screen"),
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Trivia Game") },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.background,
-                            titleContentColor = MaterialTheme.colorScheme.onBackground
-                        )
-                    )
-                }
-            ) { innerPadding ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                        .padding(16.dp)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.question_counter, current.currentIndex + 1, current.questions.size),
-                        style = MaterialTheme.typography.titleMedium
-                    )
-
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Surface(
-                            tonalElevation = 1.dp,
-                            shape = MaterialTheme.shapes.small,
-                            color = MaterialTheme.colorScheme.surfaceVariant
-                        ) {
-                            Text(
-                                text = "Category: ${question.category}",
-                                style = MaterialTheme.typography.labelLarge,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-                            )
-                        }
-
-                        Surface(
-                            tonalElevation = 1.dp,
-                            shape = MaterialTheme.shapes.small,
-                            color = MaterialTheme.colorScheme.surfaceVariant
-                        ) {
-                            Text(
-                                text = "Difficulty: ${question.difficulty.replaceFirstChar { it.uppercase() }}",
-                                style = MaterialTheme.typography.labelLarge,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-                            )
-                        }
-                    }
-
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                    ) {
-                        Text(
-                            text = question.question,
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier
-                                .padding(16.dp)
-                                .testTag("question_text")
-                        )
-                    }
-
-                    AnswerOptionsSection(
-                        question = question,
-                        selectedAnswer = selectedAnswer,
-                        onAnswerSelected = { selectedAnswerState.value = it },
-                        onAnswerConfirmed = { viewModel.submit(it) },
-                        bringIntoViewRequester = nextQuestionButtonBringIntoViewRequester
-                    )
-                }
-            }
-        }
+        is TriviaUiState.Game -> TriviaGameContent(
+            session = state.session,
+            onAnswerConfirmed = { viewModel.submit(it) },
+            onRetry = { viewModel.loadQuestions() }
+        )
         // todo why is this needed? Could TriviaNavHost handle this?
         TriviaUiState.Idle -> SetupScreen(
             categories = categories,
@@ -208,6 +171,102 @@ fun TriviaScreen(
             onReminderEnabledChange = {},
             onReminderTimeChange = { _, _ -> }
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun TriviaGameContent(
+    session: GameSession,
+    onAnswerConfirmed: (String) -> Unit,
+    onRetry: () -> Unit
+) {
+    val question = session.currentQuestion
+    val selectedAnswerState = remember(session.currentIndex, question?.question) {
+        mutableStateOf<String?>(null)
+    }
+    val nextQuestionButtonBringIntoViewRequester = remember(session.currentIndex, question?.question) {
+        BringIntoViewRequester()
+    }
+
+    if (question == null) {
+        ErrorScreen(message = UiText.StringResource(R.string.error_no_valid_question), onRetry = onRetry)
+        return
+    }
+
+    Scaffold(
+        modifier = Modifier.testTag("trivia_screen"),
+        topBar = {
+            TopAppBar(
+                title = { Text("Trivia Game") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                )
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.question_counter, session.currentIndex + 1, session.questions.size),
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Surface(
+                    tonalElevation = 1.dp,
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    Text(
+                        text = "Category: ${question.category}",
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
+                }
+
+                Surface(
+                    tonalElevation = 1.dp,
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    Text(
+                        text = "Difficulty: ${question.difficulty.replaceFirstChar { it.uppercase() }}",
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
+                }
+            }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Text(
+                    text = question.question,
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(16.dp).testTag("question_text")
+                )
+            }
+
+            AnswerOptionsSection(
+                question = question,
+                selectedAnswer = selectedAnswerState.value,
+                onAnswerSelected = { selectedAnswerState.value = it },
+                onAnswerConfirmed = onAnswerConfirmed,
+                bringIntoViewRequester = nextQuestionButtonBringIntoViewRequester
+            )
+        }
     }
 }
 

@@ -15,9 +15,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import com.dosparta.trivia.ui.R
 import com.dosparta.trivia.ui.UiText
 import com.dosparta.trivia.ui.asString
+import com.dosparta.trivia.ui.preview.PreviewFixtures
+import com.dosparta.trivia.ui.preview.TriviaPreviewTheme
+
+@PreviewLightDark
+@Composable
+private fun ErrorScreenPreview() {
+    TriviaPreviewTheme {
+        ErrorScreen(message = PreviewFixtures.error, onRetry = {})
+    }
+}
 
 /**
  * A full-screen error display with a retry action.
@@ -55,6 +66,7 @@ fun ErrorScreen(
             ) {
                 Text(text = stringResource(R.string.retry))
             }
+
         }
     }
 }

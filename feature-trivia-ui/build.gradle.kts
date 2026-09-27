@@ -47,6 +47,7 @@ kotlin {
 }
 
 dependencies {
+    implementation(project(":core-ui"))
     implementation(project(":trivia-domain"))
     implementation(project(":data-trivia"))
 
@@ -75,6 +76,7 @@ dependencies {
     testImplementation(libs.ui.test.junit4)
 
     debugImplementation(libs.ui.test.manifest)
+    debugImplementation(libs.androidx.ui.tooling)
 
     kspTest(libs.hilt.android.compiler)
     kspAndroidTest(libs.hilt.android.compiler)

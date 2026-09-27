@@ -23,8 +23,43 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import com.dosparta.trivia.domain.game.GameResult
 import com.dosparta.trivia.ui.R
+import com.dosparta.trivia.ui.preview.PreviewFixtures
+import com.dosparta.trivia.ui.preview.TriviaPreviewTheme
+
+@PreviewLightDark
+@Composable
+private fun PartialResultPreview() {
+    TriviaPreviewTheme {
+        ResultScreen(result = PreviewFixtures.result, onPlayAgain = {}, onStartNewGame = {})
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun PerfectResultPreview() {
+    TriviaPreviewTheme {
+        ResultScreen(
+            result = PreviewFixtures.result.copy(correctAnswers = PreviewFixtures.result.totalQuestions),
+            onPlayAgain = {},
+            onStartNewGame = {}
+        )
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun ZeroScoreResultPreview() {
+    TriviaPreviewTheme {
+        ResultScreen(
+            result = PreviewFixtures.result.copy(correctAnswers = 0),
+            onPlayAgain = {},
+            onStartNewGame = {}
+        )
+    }
+}
 
 /**
  * A screen displaying the results of a completed trivia session.
@@ -49,6 +84,7 @@ fun ResultScreen(
                 )
             )
         }
+
     ) { innerPadding ->
         Column(
             modifier = Modifier

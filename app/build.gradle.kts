@@ -46,6 +46,7 @@ kotlin {
 }
 
 dependencies {
+    implementation(project(":core-ui"))
     implementation(project(":feature-trivia-ui"))
 
     implementation(libs.androidx.core.ktx)

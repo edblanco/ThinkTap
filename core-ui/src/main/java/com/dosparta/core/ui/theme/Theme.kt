@@ -1,4 +1,4 @@
-package com.dosparta.triviagame2.ui.theme
+package com.dosparta.core.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme

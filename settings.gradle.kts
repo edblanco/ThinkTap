@@ -23,6 +23,7 @@ rootProject.name = "Trivia Game 2"
 include(":app")
 include(":data-trivia")
 include(":core-network")
+include(":core-ui")
 include(":trivia-domain")
 include(":feature-trivia-ui")
 include(":quality-detekt-rules")

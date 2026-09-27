@@ -22,7 +22,7 @@ import com.dosparta.trivia.ui.navigation.TriviaNavHost
 import com.dosparta.trivia.ui.viewmodel.TriviaViewModel
 import com.dosparta.triviagame2.reminder.DailyQuizReminderManager
 import com.dosparta.triviagame2.reminder.ReminderSettings
-import com.dosparta.triviagame2.ui.theme.TriviaGame2Theme
+import com.dosparta.core.ui.theme.TriviaGame2Theme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint

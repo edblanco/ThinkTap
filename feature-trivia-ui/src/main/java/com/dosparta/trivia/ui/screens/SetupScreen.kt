@@ -34,11 +34,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import com.dosparta.trivia.domain.model.TriviaCategory
 import com.dosparta.trivia.domain.model.TriviaConfig
 import com.dosparta.trivia.ui.R
 import com.dosparta.trivia.ui.UiText
 import com.dosparta.trivia.ui.components.ErrorScreen
+import com.dosparta.trivia.ui.preview.PreviewFixtures
+import com.dosparta.trivia.ui.preview.TriviaPreviewTheme
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -268,3 +271,57 @@ fun SetupScreen(
  */
 private fun formatReminderTime(hour: Int, minute: Int): String =
     "${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
+
+@PreviewLightDark
+@Composable
+private fun SetupScreenPreview() {
+    TriviaPreviewTheme {
+        SetupScreen(
+            categories = PreviewFixtures.categories,
+            categoriesError = null,
+            reminderEnabled = false,
+            reminderHour = 19,
+            reminderMinute = 0,
+            onStartGame = {},
+            onRetryLoadCategories = {},
+            onReminderEnabledChange = {},
+            onReminderTimeChange = { _, _ -> }
+        )
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun SetupReminderEnabledPreview() {
+    TriviaPreviewTheme {
+        SetupScreen(
+            categories = PreviewFixtures.categories,
+            categoriesError = null,
+            reminderEnabled = true,
+            reminderHour = 19,
+            reminderMinute = 30,
+            onStartGame = {},
+            onRetryLoadCategories = {},
+            onReminderEnabledChange = {},
+            onReminderTimeChange = { _, _ -> }
+        )
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun SetupErrorPreview() {
+    TriviaPreviewTheme {
+        SetupScreen(
+            categories = emptyList(),
+            categoriesError = PreviewFixtures.error,
+            reminderEnabled = false,
+            reminderHour = 19,
+            reminderMinute = 0,
+            onStartGame = {},
+            onRetryLoadCategories = {},
+            onReminderEnabledChange = {},
+            onReminderTimeChange = { _, _ -> }
+        )
+    }
+}

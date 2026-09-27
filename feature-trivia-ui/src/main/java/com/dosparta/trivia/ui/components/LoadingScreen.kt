@@ -9,6 +9,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.tooling.preview.PreviewLightDark
+import com.dosparta.trivia.ui.preview.TriviaPreviewTheme
+
+@PreviewLightDark
+@Composable
+private fun LoadingScreenPreview() {
+    TriviaPreviewTheme {
+        LoadingScreen()
+    }
+}
 
 /**
  * A full-screen loading indicator.
@@ -27,5 +37,6 @@ fun LoadingScreen() {
         ) {
             CircularProgressIndicator()
         }
+
     }
 }
