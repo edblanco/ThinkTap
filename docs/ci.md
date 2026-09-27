@@ -62,8 +62,7 @@ non-draft PR to `main`, a maintainer can:
 3. Select `JVM tests`, `Screenshot tests`, and `Instrumentation tests (API 35)` from the
    observed GitHub Actions checks, and enable the rule.
 
-Without such a rule, failed CI does not itself prevent merging. Drafts skip checks but
-cannot be merged until ready for review, which triggers the full suite. Merge queues
+Without such a rule, failed CI does not itself prevent merging. Drafts skip checks but cannot be merged until ready for review, which triggers the full suite. Merge queues
 are not configured; enabling one also requires adding `merge_group` workflow support.
 
 ## Validating workflow changes
