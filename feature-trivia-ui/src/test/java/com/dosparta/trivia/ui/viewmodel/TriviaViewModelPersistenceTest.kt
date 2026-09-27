@@ -227,7 +227,6 @@ class TriviaViewModelPersistenceTest {
         val capturedElapsed = mutableListOf<Long>()
         coEvery { persistGameSessionUseCase.invoke(any(), any(), any(), any(), any()) } answers {
             capturedElapsed += args[3] as Long
-            Unit
         }
 
         val session = GameSession(

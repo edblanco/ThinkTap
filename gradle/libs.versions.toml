@@ -27,7 +27,6 @@ robolectric = "4.16.1"
 coreTesting = "2.2.0"
 turbineVer= "1.2.1"
 mockkVer = "1.14.11"
-kotlinTest = "1.8.22"
 uiTestCompose = "1.12.0"
 detekt = "1.23.8"
 work = "2.11.0"
@@ -78,8 +77,8 @@ core-testing = { group = "androidx.arch.core", name = "core-testing", version.re
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbineVer" }
 # Mockk has better support for kotlin than mockito
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockkVer" }
-kotlin-test = { group = "org.jetbrains.kotlin", name = "kotlin-test", version.ref = "kotlinTest" }
-kotlin-test-junit = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit", version.ref = "kotlinTest" }
+kotlin-test = { group = "org.jetbrains.kotlin", name = "kotlin-test", version.ref = "kotlin" }
+kotlin-test-junit = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit", version.ref = "kotlin" }
 ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4", version.ref = "uiTestCompose" }
 ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest", version.ref = "uiTestCompose" }
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }

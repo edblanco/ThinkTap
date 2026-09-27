@@ -13,6 +13,11 @@ plugins {
 
 // Apply Jacoco only to JVM-based subprojects (avoid instrumenting Android/Robolectric internals)
 subprojects {
+    // NOTE: Detekt 1.23.8 internally calls the deprecated `ReportingExtension.file(String)` when it
+    // is applied (DetektPlugin.kt:28). That warning comes from the plugin, not from this build
+    // script, so it cannot be fixed here. Remove this note once a Detekt release that drops the
+    // deprecated call is available on a stable channel (Detekt 2.x is currently alpha-only and
+    // published under the new `dev.detekt` group with breaking rule/API changes).
     apply(plugin = "io.gitlab.arturbosch.detekt")
 
     plugins.withType<JavaBasePlugin> {

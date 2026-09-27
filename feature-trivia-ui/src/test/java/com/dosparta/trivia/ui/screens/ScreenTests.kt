@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.SemanticsMatcher
@@ -103,7 +104,7 @@ class ScreenTests {
                     selectedAnswer = selectedAnswer.value,
                     onAnswerSelected = { selectedAnswer.value = it },
                     onAnswerConfirmed = { confirmedAnswer = it },
-                    bringIntoViewRequester = BringIntoViewRequester()
+                    bringIntoViewRequester = remember { BringIntoViewRequester() }
                 )
             }
         }

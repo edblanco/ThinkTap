@@ -1,10 +1,12 @@
 package com.dosparta.triviagame2.reminder
 
 import android.Manifest
+import android.app.Notification
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -43,8 +45,23 @@ class DailyQuizReminderWorker(
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
 
-        NotificationManagerCompat.from(applicationContext).notify(NOTIFICATION_ID, notification)
+        postNotification(notification)
         return Result.success()
+    }
+
+    /**
+     * Posts the reminder notification.
+     *
+     * [canPostNotifications] already gates this call, but the user can revoke the notification
+     * permission between that check and this call, so the resulting [SecurityException] is handled
+     * explicitly instead of crashing the worker.
+     */
+    private fun postNotification(notification: Notification) {
+        try {
+            NotificationManagerCompat.from(applicationContext).notify(NOTIFICATION_ID, notification)
+        } catch (securityException: SecurityException) {
+            Log.w(TAG, "Notification permission revoked before the reminder could be posted", securityException)
+        }
     }
 
     private fun canPostNotifications(): Boolean {
@@ -56,6 +73,7 @@ class DailyQuizReminderWorker(
     }
 
     private companion object {
+        const val TAG = "DailyQuizReminder"
         const val NOTIFICATION_ID = 1001
         const val REQUEST_CODE_OPEN_APP = 1002
     }

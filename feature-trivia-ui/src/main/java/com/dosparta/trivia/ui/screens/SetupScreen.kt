@@ -39,7 +39,6 @@ import com.dosparta.trivia.domain.model.TriviaConfig
 import com.dosparta.trivia.ui.R
 import com.dosparta.trivia.ui.UiText
 import com.dosparta.trivia.ui.components.ErrorScreen
-import java.util.Locale
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,11 +77,13 @@ fun SetupScreen(
                     )
                 )
             }
-        ) { _ ->
-            ErrorScreen(
-                message = categoriesError,
-                onRetry = onRetryLoadCategories,
-            )
+        ) { innerPadding ->
+            Box(modifier = Modifier.padding(innerPadding)) {
+                ErrorScreen(
+                    message = categoriesError,
+                    onRetry = onRetryLoadCategories,
+                )
+            }
         }
         return
     }
@@ -233,7 +234,7 @@ fun SetupScreen(
                         Text(
                             text = stringResource(
                                 R.string.daily_reminder_time,
-                                String.format(Locale.getDefault(), "%02d:%02d", reminderHour, reminderMinute)
+                                formatReminderTime(reminderHour, reminderMinute)
                             )
                         )
                     }
@@ -258,3 +259,12 @@ fun SetupScreen(
         }
     }
 }
+
+/**
+ * Formats a 24-hour time as `HH:mm` using ASCII digits.
+ *
+ * Padding is done manually instead of via [String.format] so the result never depends on the
+ * ambient locale, which cannot be read in an observable way from a composable.
+ */
+private fun formatReminderTime(hour: Int, minute: Int): String =
+    "${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
