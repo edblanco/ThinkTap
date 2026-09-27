@@ -30,7 +30,7 @@
     <string name="daily_reminder">Daily reminder</string>
     <string name="daily_reminder_time">Reminder time: %1$s</string>
     <string name="change_time">Change time</string>
-    <string name="app_title">Trivia Game</string>
+    <string name="app_title">ThinkTap</string>
     <string name="difficulty_mixed">Mixed</string>
     <string name="difficulty_easy">Easy</string>
     <string name="difficulty_medium">Medium</string>

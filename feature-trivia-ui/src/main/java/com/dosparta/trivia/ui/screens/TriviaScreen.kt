@@ -11,6 +11,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -209,7 +210,9 @@ private fun QuestionHeader(session: GameSession, question: TriviaQuestion) {
             contentDescription = stringResource(R.string.quiz_progress_description, questionNumber, total)
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            maxLines = 2) {
             TriviaMetaChip(text = stringResource(R.string.category_value, question.category))
             TriviaMetaChip(
                 text = stringResource(
