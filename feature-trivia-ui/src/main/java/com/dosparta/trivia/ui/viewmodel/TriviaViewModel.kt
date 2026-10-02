@@ -5,14 +5,17 @@ import androidx.lifecycle.viewModelScope
 import com.dosparta.trivia.domain.game.GameResult
 import com.dosparta.trivia.domain.game.GameSession
 import com.dosparta.trivia.domain.game.StartupDecision
+import com.dosparta.trivia.domain.model.AppLanguage
 import com.dosparta.trivia.domain.model.TriviaCategory
 import com.dosparta.trivia.domain.model.TriviaConfig
 import com.dosparta.trivia.domain.model.TriviaQuestion
 import com.dosparta.trivia.domain.usecase.ClearGameSessionUseCase
 import com.dosparta.trivia.domain.usecase.FinishGameUseCase
 import com.dosparta.trivia.domain.usecase.LoadCategoriesUseCase
+import com.dosparta.trivia.domain.usecase.ObserveTranslationAvailabilityUseCase
 import com.dosparta.trivia.domain.usecase.PersistGameSessionUseCase
 import com.dosparta.trivia.domain.usecase.ResolveAppStartupUseCase
+import com.dosparta.trivia.domain.usecase.SetContentLanguageUseCase
 import com.dosparta.trivia.domain.usecase.StartGameSession
 import com.dosparta.trivia.domain.usecase.SubmitAnswerUseCase
 import com.dosparta.trivia.ui.R
@@ -20,6 +23,7 @@ import com.dosparta.trivia.ui.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -54,7 +58,9 @@ class TriviaViewModel @Inject constructor(
     private val loadCategoriesUseCase: LoadCategoriesUseCase,
     private val resolveStartupUseCase: ResolveAppStartupUseCase,
     private val persistGameSessionUseCase: PersistGameSessionUseCase,
-    private val clearGameSessionUseCase: ClearGameSessionUseCase
+    private val clearGameSessionUseCase: ClearGameSessionUseCase,
+    private val setContentLanguageUseCase: SetContentLanguageUseCase,
+    observeTranslationAvailability: ObserveTranslationAvailabilityUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<TriviaUiState>(TriviaUiState.Idle)
@@ -72,7 +78,11 @@ class TriviaViewModel @Inject constructor(
     private val _startupState = MutableStateFlow<StartupUiState>(StartupUiState.Loading)
     val startupState: StateFlow<StartupUiState> = _startupState.asStateFlow()
 
+    /** True when the latest trivia content could not be translated and is shown in English. */
+    val translationUnavailable: StateFlow<Boolean> = observeTranslationAvailability()
+
     private var loadJob: Job? = null
+    private var categoriesJob: Job? = null
     private var bootstrapped = false
     private var pausedElapsedMillis: Long? = null
     private var replayQuestions: List<TriviaQuestion> = emptyList()
@@ -124,8 +134,26 @@ class TriviaViewModel @Inject constructor(
     fun loadCategories() {
         if (_isCategoriesLoading.value) return
 
-        viewModelScope.launch {
+        categoriesJob = viewModelScope.launch {
             loadCategoriesInternal(updateStartupState = false)
+        }
+    }
+
+    /**
+     * Called with the language the UI is currently rendered in. New content is translated into
+     * it; categories that were already loaded are reloaded so the setup screen matches the UI.
+     * A game in progress keeps the language it was started in.
+     */
+    fun onContentLanguageChanged(language: AppLanguage) {
+        if (!setContentLanguageUseCase(language)) return
+
+        val categoriesAlreadyRequested = _categories.value.isNotEmpty() || _categoriesError.value != null
+        if (categoriesAlreadyRequested && _startupState.value !is StartupUiState.Loading) {
+            val previousJob = categoriesJob
+            categoriesJob = viewModelScope.launch {
+                previousJob?.cancelAndJoin()
+                loadCategoriesInternal(updateStartupState = false)
+            }
         }
     }
 

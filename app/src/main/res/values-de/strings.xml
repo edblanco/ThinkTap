@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_permission_denied">Für tägliche Erinnerungen wird die Benachrichtigungsberechtigung benötigt.</string>
+    <string name="daily_reminder_channel_name">Tägliche Quiz-Erinnerung</string>
+    <string name="daily_reminder_channel_description">Erinnert dich daran, dein tägliches Trivia-Quiz zu spielen.</string>
+    <string name="daily_reminder_title">Zeit für dein tägliches Quiz!</string>
+    <string name="daily_reminder_body">Komm zurück und fordere dich mit einer neuen Trivia-Runde heraus.</string>
+</resources>

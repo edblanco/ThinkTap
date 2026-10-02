@@ -1,5 +1,8 @@
 package com.dosparta.trivia.ui.viewmodel
 
+import com.dosparta.trivia.domain.usecase.ObserveTranslationAvailabilityUseCase
+import com.dosparta.trivia.domain.usecase.SetContentLanguageUseCase
+import com.dosparta.trivia.ui.FakeContentLocalizationRepository
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.dosparta.trivia.domain.game.GameResult
 import com.dosparta.trivia.domain.game.GameSession
@@ -51,6 +54,7 @@ class TriviaViewModelPersistenceTest {
     private lateinit var clearGameSessionUseCase: ClearGameSessionUseCase
     private lateinit var gameSessionRepository: IGameSessionRepository
     private lateinit var viewModel: TriviaViewModel
+    private val localizationRepository = FakeContentLocalizationRepository()
 
     private val question = TriviaQuestion(
         category = "Science",
@@ -88,7 +92,9 @@ class TriviaViewModelPersistenceTest {
             loadCategoriesUseCase = loadCategoriesUseCase,
             resolveStartupUseCase = resolveStartupUseCase,
             persistGameSessionUseCase = persistGameSessionUseCase,
-            clearGameSessionUseCase = clearGameSessionUseCase
+            clearGameSessionUseCase = clearGameSessionUseCase,
+            setContentLanguageUseCase = SetContentLanguageUseCase(localizationRepository),
+            observeTranslationAvailability = ObserveTranslationAvailabilityUseCase(localizationRepository)
         )
     }
 

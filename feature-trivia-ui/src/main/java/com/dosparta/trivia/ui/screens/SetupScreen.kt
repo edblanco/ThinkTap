@@ -33,11 +33,14 @@ import com.dosparta.core.ui.components.TriviaPrimaryButton
 import com.dosparta.core.ui.components.TriviaScreenScaffold
 import com.dosparta.core.ui.components.TriviaSecondaryButton
 import com.dosparta.core.ui.components.TriviaSwitchRow
+import com.dosparta.trivia.domain.model.AppLanguage
 import com.dosparta.trivia.domain.model.TriviaCategory
 import com.dosparta.trivia.domain.model.TriviaConfig
 import com.dosparta.trivia.ui.R
 import com.dosparta.trivia.ui.UiText
 import com.dosparta.trivia.ui.components.ErrorScreen
+import com.dosparta.trivia.ui.components.TranslationNotice
+import com.dosparta.trivia.ui.displayNameRes
 import com.dosparta.trivia.ui.preview.PreviewFixtures
 import com.dosparta.trivia.ui.preview.TriviaPreviewTheme
 import kotlin.math.roundToInt
@@ -59,7 +62,10 @@ fun SetupScreen(
     onStartGame: (TriviaConfig) -> Unit,
     onRetryLoadCategories: () -> Unit,
     onReminderEnabledChange: (Boolean) -> Unit,
-    onReminderTimeChange: (Int, Int) -> Unit
+    onReminderTimeChange: (Int, Int) -> Unit,
+    selectedLanguage: AppLanguage? = null,
+    onLanguageSelected: (AppLanguage?) -> Unit = {},
+    translationUnavailable: Boolean = false
 ) {
     if (categoriesError != null) {
         ErrorScreen(message = categoriesError, onRetry = onRetryLoadCategories)
@@ -92,6 +98,10 @@ fun SetupScreen(
                 )
             }
 
+            if (translationUnavailable) {
+                TranslationNotice()
+            }
+
             EnterAnimated(modifier = Modifier.fillMaxWidth(), index = 1) {
                 AmountCard(
                     amount = selectedAmount,
@@ -115,6 +125,13 @@ fun SetupScreen(
             }
 
             EnterAnimated(modifier = Modifier.fillMaxWidth(), index = 4) {
+                LanguageField(
+                    selectedLanguage = selectedLanguage,
+                    onLanguageSelected = onLanguageSelected
+                )
+            }
+
+            EnterAnimated(modifier = Modifier.fillMaxWidth(), index = 5) {
                 ReminderCard(
                     reminderEnabled = reminderEnabled,
                     reminderHour = reminderHour,
@@ -124,7 +141,7 @@ fun SetupScreen(
                 )
             }
 
-            EnterAnimated(modifier = Modifier.fillMaxWidth(), index = 5) {
+            EnterAnimated(modifier = Modifier.fillMaxWidth(), index = 6) {
                 TriviaPrimaryButton(
                     text = stringResource(R.string.start_game),
                     onClick = {
@@ -221,6 +238,29 @@ private fun DifficultyField(
     )
 }
 
+/**
+ * Lets the player override the system language. The first option, "System default", maps to
+ * `null`; the language names are shown in their own language so they are recognisable from any UI.
+ */
+@Composable
+private fun LanguageField(
+    selectedLanguage: AppLanguage?,
+    onLanguageSelected: (AppLanguage?) -> Unit
+) {
+    val choices = listOf<AppLanguage?>(null) + AppLanguage.entries
+    val labels = choices.map { language ->
+        stringResource(language?.displayNameRes() ?: R.string.language_system_default)
+    }
+
+    TriviaDropdownField(
+        label = stringResource(R.string.language_label),
+        value = labels[choices.indexOf(selectedLanguage).coerceAtLeast(0)],
+        options = labels,
+        onOptionSelected = { index -> onLanguageSelected(choices[index]) },
+        modifier = Modifier.testTag("language_button")
+    )
+}
+
 @Composable
 private fun ReminderCard(
     reminderEnabled: Boolean,
@@ -290,6 +330,26 @@ private fun SetupScreenPreview() {
             onRetryLoadCategories = {},
             onReminderEnabledChange = {},
             onReminderTimeChange = { _, _ -> }
+        )
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun SetupTranslationUnavailablePreview() {
+    TriviaPreviewTheme {
+        SetupScreen(
+            categories = PreviewFixtures.categories,
+            categoriesError = null,
+            reminderEnabled = false,
+            reminderHour = 19,
+            reminderMinute = 0,
+            onStartGame = {},
+            onRetryLoadCategories = {},
+            onReminderEnabledChange = {},
+            onReminderTimeChange = { _, _ -> },
+            selectedLanguage = AppLanguage.GERMAN,
+            translationUnavailable = true
         )
     }
 }
