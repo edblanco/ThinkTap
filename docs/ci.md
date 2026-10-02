@@ -49,7 +49,10 @@ run is cancelled. Setup/compilation failures may leave no reports; the upload st
 if none exist, and the original failure remains visible in the job log.
 
 See [screenshot testing](screenshot-testing.md) for reviewing visual failures. CI never
-records new baselines or accepts a nonzero image-difference threshold.
+records new baselines or accepts a nonzero image-difference threshold. Linux verification
+uses each screenshot module's committed `src/test/screenshots/linux/` baseline set;
+macOS recording and verification continue to use the original directory. Intentional UI
+changes must update and review both platform sets.
 
 ## Require checks before merging
 

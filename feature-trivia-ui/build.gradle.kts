@@ -50,7 +50,12 @@ kotlin {
 // Screenshot goldens are committed, so they must live outside `build/`, which `clean` wipes
 // and `.gitignore` excludes.
 roborazzi {
-    outputDir.set(file("src/test/screenshots"))
+    val baselineDirectory = if (System.getProperty("os.name") == "Linux") {
+        "src/test/screenshots/linux"
+    } else {
+        "src/test/screenshots"
+    }
+    outputDir.set(file(baselineDirectory))
 }
 
 // Screenshot regressions should fail the build like any other test, matching the repo's

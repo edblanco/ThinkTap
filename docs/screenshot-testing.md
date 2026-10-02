@@ -15,6 +15,7 @@ No emulator is involved — everything runs through Robolectric inside `testDebu
 | Harness | `core-ui/src/testFixtures/java/com/dosparta/core/ui/screenshot/` |
 | Component goldens | `core-ui/src/test/screenshots/` |
 | Screen goldens | `feature-trivia-ui/src/test/screenshots/` |
+| Linux goldens | `linux/` inside each module's screenshot directory |
 
 Goldens are committed. They deliberately sit outside `build/`, which `clean` wipes and
 `.gitignore` excludes.
@@ -66,6 +67,10 @@ An image is only useful if it is byte-identical across runs. The harness pins ev
   with Robolectric's default device.
 - **SDK 33.** Roborazzi needs Robolectric's native graphics pipeline, which requires SDK 26+. The
   rest of the Robolectric suite pins SDK 24, so screenshot tests override it in the harness.
+- **Host-specific baselines.** Linux uses `src/test/screenshots/linux/`; macOS keeps the
+  original `src/test/screenshots/` baselines. Verification and recording both select the
+  directory through the module's Roborazzi configuration, without falling back to another
+  platform's images.
 
 ### Animations that ignore reduced motion
 
@@ -91,6 +96,13 @@ JDK versions. The existing goldens were recorded on developer machines.
 Temurin JDK 17. Comparisons are strict: CI does not set a nonzero
 `roborazzi.compare.changeThreshold` and never runs `recordRoborazziDebug`.
 
+Robolectric's native renderer produces small host-dependent color differences, particularly
+at rounded edges and in translucent fills. The first Linux run had six mismatches whose
+per-channel differences were at most 3 out of 255, with matching dimensions, text, and layout.
+The Linux baseline set contains the reviewed actual images for those six cases and the
+unchanged references for the other 21. Separate baselines preserve verification on both
+Linux x86_64 and macOS ARM without increasing the comparison tolerance.
+
 For a failure, download the `screenshot-test-reports` artifact from the GitHub Actions run.
 It includes the module test reports, Roborazzi reports, committed baselines, and generated
 comparison images. An ordinary `test` run is not a substitute for this verification job.
@@ -101,3 +113,8 @@ developer-machine baselines differ only because of the Linux environment, reprod
 on Linux x86_64 with the same JDK and harness settings, review every changed PNG, and commit
 the approved baselines in a deliberate change. Do not automatically accept CI output or
 loosen the comparison threshold to make the build green.
+
+For an intentional UI change, record and review both platform sets: run
+`./gradlew recordRoborazziDebug` on macOS, then on Linux x86_64 with Temurin JDK 17.
+Commit both sets with the UI change. Running only the macOS recording command does not
+update CI's Linux baselines. A new screenshot test also needs a baseline on both hosts.
