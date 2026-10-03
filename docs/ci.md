@@ -16,7 +16,7 @@ Run these commands from the repository root using JDK 17 and the checked-in wrap
 
 | Check name | Command | Coverage |
 |---|---|---|
-| `JVM tests` | `./gradlew test --continue --stacktrace` | All configured Android local/Robolectric test tasks and `quality-detekt-rules:test` |
+| `JVM tests` | `./gradlew test jacocoRootCoverageVerification --continue --stacktrace` | All configured Android local/Robolectric test tasks and `quality-detekt-rules:test`, plus a 70% business-logic line-coverage minimum |
 | `Screenshot tests` | `./gradlew verifyRoborazziDebug --continue --stacktrace` | Strict golden verification in `core-ui` and `feature-trivia-ui` |
 | `Instrumentation tests (API 35)` | `./gradlew connectedDebugAndroidTest --continue --stacktrace` | All modules' debug instrumentation tests on the connected emulator |
 
@@ -35,11 +35,25 @@ repository secrets and have only `contents: read` token permissions. Actions are
 to commit SHAs. GitHub may require a maintainer to approve workflows from outside
 contributors before any tests run.
 
+## Coverage requirement
+
+The `JVM tests` check fails when aggregate **line coverage is below 70%** in
+`trivia-domain`. Exactly 70% passes. This preserves the existing business-logic report
+scope: UI, other application modules, and generated classes are not counted. Coverage
+comes from the domain module's debug unit tests, not instrumentation or screenshot tests.
+
+Run the gate locally with `./gradlew jacocoRootCoverageVerification`. It runs the
+required tests and generates HTML and XML reports under
+`build/reports/jacoco/jacocoRootReport/` before checking the threshold. Missing execution
+data or compiled classes fail explicitly rather than silently skipping the gate.
+Run `./gradlew jacocoRootReport` to generate reports without enforcing the minimum.
+
 ## Failure reports
 
 Open the failed check's **Details**, then the workflow run's **Artifacts** section:
 
-- `jvm-test-reports`: module HTML test reports and XML test results.
+- `jvm-test-reports`: module HTML test reports, XML test results, and JaCoCo HTML/XML
+  coverage reports (including when coverage is below 70%).
 - `screenshot-test-reports`: test reports, Roborazzi reports/results, comparison images,
   and committed baselines.
 - `instrumentation-test-reports-api-35`: connected Android test reports and results.
@@ -73,7 +87,7 @@ are not configured; enabling one also requires adding `merge_group` workflow sup
 Run `actionlint .github/workflows/ci.yml` and inspect task coverage with:
 
 ```bash
-./gradlew test verifyRoborazziDebug connectedDebugAndroidTest --dry-run
+./gradlew test jacocoRootCoverageVerification verifyRoborazziDebug connectedDebugAndroidTest --dry-run
 ```
 
 A dry run confirms task selection, not passing tests. Local macOS runs also cannot

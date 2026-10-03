@@ -11,6 +11,12 @@ plugins {
     alias(libs.plugins.detekt) apply false
 }
 
+val jacocoVersion = "0.8.14"
+
+extensions.configure<JacocoPluginExtension> {
+    toolVersion = jacocoVersion
+}
+
 // Apply Jacoco only to JVM-based subprojects (avoid instrumenting Android/Robolectric internals)
 subprojects {
     // NOTE: Detekt 1.23.8 internally calls the deprecated `ReportingExtension.file(String)` when it
@@ -23,7 +29,7 @@ subprojects {
     plugins.withType<JavaBasePlugin> {
         apply(plugin = "jacoco")
         extensions.configure<JacocoPluginExtension> {
-            toolVersion = "0.8.8"
+            toolVersion = jacocoVersion
         }
     }
 
@@ -52,39 +58,79 @@ val coverageProjects = listOf(
     project(":trivia-domain")
 )
 
-tasks.register<JacocoReport>("jacocoRootReport") {
+val coverageTestTasks = coverageProjects.map { "${it.path}:testDebugUnitTest" }
+val coverageExecutionData = files(coverageProjects.map { proj ->
+    proj.layout.buildDirectory.file("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
+})
+val coverageClassDirectories = files(coverageProjects.map { proj ->
+    fileTree(mapOf(
+        "dir" to proj.layout.buildDirectory.dir("intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes"),
+        "include" to listOf("**/*.class"),
+        "exclude" to listOf(
+            "**/*Test*.class",
+            "**/R.class",
+            "**/R$*.class",
+            "**/BuildConfig.class",
+            "**/Hilt_*.class",
+            "**/Dagger*",
+            "**/Generated*"
+        )
+    ))
+})
+
+val validateCoverageInputs = tasks.register("validateCoverageInputs") {
+    group = "verification"
+    description = "Fails if business-logic coverage data or compiled classes are missing."
+    dependsOn(coverageTestTasks)
+
+    doLast {
+        coverageExecutionData.forEach { file ->
+            check(file.isFile && file.length() > 0) {
+                "Missing JaCoCo execution data: $file. Ensure debug unit-test coverage is enabled."
+            }
+        }
+        check(!coverageClassDirectories.isEmpty) {
+            "No business-logic classes found for coverage analysis."
+        }
+    }
+}
+
+val jacocoRootReport = tasks.register<JacocoReport>("jacocoRootReport") {
     group = "verification"
     description = "Generates a combined JaCoCo coverage report for the project's business logic layer."
 
-    dependsOn(coverageProjects.flatMap { proj ->
-        proj.tasks.withType<Test>()
-    })
+    dependsOn(validateCoverageInputs)
 
     reports {
         html.required.set(true)
+        xml.required.set(true)
     }
 
     sourceDirectories.setFrom(files(coverageProjects.map { proj ->
         proj.projectDir.resolve("src/main/java")
     }))
 
-    classDirectories.setFrom(files(coverageProjects.map { proj ->
-        fileTree(mapOf(
-            "dir" to proj.layout.buildDirectory.dir("intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes").get().asFile,
-            "include" to listOf("**/*.class"),
-            "exclude" to listOf(
-                "**/*Test*.class",
-                "**/R.class",
-                "**/R$*.class",
-                "**/BuildConfig.class",
-                "**/Hilt_*.class",
-                "**/Dagger*",
-                "**/Generated*"
-            )
-        ))
-    }))
+    classDirectories.setFrom(coverageClassDirectories)
+    executionData.setFrom(coverageExecutionData)
+}
 
-    executionData.setFrom(files(coverageProjects.map { proj ->
-        proj.layout.buildDirectory.file("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec").get().asFile
-    }))
+tasks.register<JacocoCoverageVerification>("jacocoRootCoverageVerification") {
+    group = "verification"
+    description = "Requires at least 70% line coverage across the project's business logic layer."
+    dependsOn(jacocoRootReport)
+
+    sourceDirectories.setFrom(jacocoRootReport.map { it.sourceDirectories })
+    classDirectories.setFrom(coverageClassDirectories)
+    executionData.setFrom(coverageExecutionData)
+
+    violationRules {
+        rule {
+            element = "BUNDLE"
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = "0.70".toBigDecimal()
+            }
+        }
+    }
 }
