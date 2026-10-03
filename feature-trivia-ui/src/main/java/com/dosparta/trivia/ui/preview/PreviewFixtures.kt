@@ -17,6 +17,15 @@ internal object PreviewFixtures {
         options = listOf("Earth", "Mars", "Venus", "Jupiter")
     )
     val session = GameSession(questions = listOf(question, question), startTimeMillis = 0L)
+    val booleanQuestion = TriviaQuestion(
+        category = "Ciencia y naturaleza",
+        type = "boolean",
+        difficulty = "medium",
+        question = "¿El agua hierve a 100 °C al nivel del mar?",
+        correctAnswer = "True",
+        options = listOf("True", "False")
+    )
+    val booleanSession = GameSession(questions = listOf(booleanQuestion), startTimeMillis = 0L)
     val categories = listOf(
         TriviaCategory(id = 9, name = "General Knowledge"),
         TriviaCategory(id = 17, name = "Science & Nature")

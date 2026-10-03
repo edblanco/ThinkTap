@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_permission_denied">Se necesita el permiso de notificaciones para activar los recordatorios diarios.</string>
+    <string name="daily_reminder_channel_name">Recordatorio diario del quiz</string>
+    <string name="daily_reminder_channel_description">Te recuerda jugar tu quiz de trivia diario.</string>
+    <string name="daily_reminder_title">¡Es hora de tu quiz diario!</string>
+    <string name="daily_reminder_body">Vuelve y ponte a prueba con una nueva partida de trivia.</string>
+</resources>

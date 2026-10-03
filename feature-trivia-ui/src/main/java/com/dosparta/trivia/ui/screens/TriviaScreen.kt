@@ -60,6 +60,9 @@ import com.dosparta.trivia.domain.model.TriviaQuestion
 import com.dosparta.trivia.ui.R
 import com.dosparta.trivia.ui.UiText
 import com.dosparta.trivia.ui.components.ErrorScreen
+import com.dosparta.trivia.ui.components.TranslationNotice
+import com.dosparta.trivia.ui.localizedAnswer
+import com.dosparta.trivia.ui.localizedDifficulty
 import com.dosparta.trivia.ui.components.LoadingScreen
 import com.dosparta.trivia.ui.preview.PreviewFixtures
 import com.dosparta.trivia.ui.preview.TriviaPreviewTheme
@@ -84,6 +87,7 @@ fun TriviaScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val translationUnavailable by viewModel.translationUnavailable.collectAsState()
 
     DisposableEffect(viewModel) {
         onDispose { viewModel.cancelPendingLoad() }
@@ -113,7 +117,8 @@ fun TriviaScreen(
         is TriviaUiState.Game -> TriviaGameContent(
             session = state.session,
             onAnswerConfirmed = { viewModel.submit(it) },
-            onRetry = { viewModel.loadQuestions() }
+            onRetry = { viewModel.loadQuestions() },
+            translationUnavailable = translationUnavailable
         )
         // todo why is this needed? Could TriviaNavHost handle this?
         TriviaUiState.Idle -> SetupScreen(
@@ -127,7 +132,8 @@ fun TriviaScreen(
             },
             onRetryLoadCategories = { viewModel.loadCategories() },
             onReminderEnabledChange = {},
-            onReminderTimeChange = { _, _ -> }
+            onReminderTimeChange = { _, _ -> },
+            translationUnavailable = translationUnavailable
         )
     }
 }
@@ -138,12 +144,14 @@ fun TriviaScreen(
  * @param session the in-progress game
  * @param onAnswerConfirmed called with the chosen answer once it is committed
  * @param onRetry called when the session has no usable question and the user asks to retry
+ * @param translationUnavailable shows a notice that the content fell back to English
  */
 @Composable
 internal fun TriviaGameContent(
     session: GameSession,
     onAnswerConfirmed: (String) -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    translationUnavailable: Boolean = false
 ) {
     val question = session.currentQuestion
     val selectedAnswerState = remember(session.currentIndex, question?.question) {
@@ -165,6 +173,10 @@ internal fun TriviaGameContent(
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            if (translationUnavailable) {
+                TranslationNotice()
+            }
+
             QuestionHeader(session = session, question = question)
 
             EnterAnimated(
@@ -217,7 +229,7 @@ private fun QuestionHeader(session: GameSession, question: TriviaQuestion) {
             TriviaMetaChip(
                 text = stringResource(
                     R.string.difficulty_value,
-                    question.difficulty.replaceFirstChar { it.uppercase() }
+                    localizedDifficulty(question.difficulty)
                 ),
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                 contentColor = MaterialTheme.colorScheme.onTertiaryContainer
@@ -271,7 +283,7 @@ internal fun AnswerOptionsSection(
         question.options.forEachIndexed { index, option ->
             val answerState = answerStateOf(option, selectedAnswer, question.correctAnswer)
             AnswerOptionButton(
-                text = option,
+                text = localizedAnswer(question, option),
                 state = visualStateOf(answerState, selectedAnswer, option),
                 onClick = {
                     if (selectedAnswer == null) {

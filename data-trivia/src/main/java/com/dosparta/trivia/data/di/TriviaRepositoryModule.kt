@@ -1,7 +1,7 @@
 package com.dosparta.trivia.data.di
 
 import com.dosparta.trivia.data.repository.GameSessionRepositoryImpl
-import com.dosparta.trivia.data.repository.TriviaRepositoryImpl
+import com.dosparta.trivia.data.repository.TranslatingTriviaRepository
 import com.dosparta.trivia.data.token.TriviaSessionTokenProvider
 import com.dosparta.trivia.data.token.TriviaSessionTokenProviderImpl
 import com.dosparta.trivia.domain.repository.IGameSessionRepository
@@ -19,7 +19,7 @@ abstract class TriviaRepositoryModule {
     @Binds
     @Singleton
     abstract fun bindTriviaRepository(
-        impl: TriviaRepositoryImpl
+        impl: TranslatingTriviaRepository
     ): ITriviaRepository
 
     @Binds

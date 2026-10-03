@@ -10,14 +10,17 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.dosparta.trivia.domain.game.GameResult
+import com.dosparta.trivia.domain.model.AppLanguage
 import com.dosparta.core.ui.theme.LocalReducedMotion
 import com.dosparta.core.ui.theme.TriviaMotion
+import com.dosparta.trivia.ui.currentContentLanguage
 import com.dosparta.trivia.ui.screens.ResultScreen
 import com.dosparta.trivia.ui.screens.SetupScreen
 import com.dosparta.trivia.ui.screens.StartupScreen
@@ -39,13 +42,23 @@ fun TriviaNavHost(
     reminderHour: Int = 19,
     reminderMinute: Int = 0,
     onReminderEnabledChange: (Boolean) -> Unit = {},
-    onReminderTimeChange: (Int, Int) -> Unit = { _, _ -> }
+    onReminderTimeChange: (Int, Int) -> Unit = { _, _ -> },
+    selectedLanguage: AppLanguage? = null,
+    onLanguageSelected: (AppLanguage?) -> Unit = {}
 ) {
     val navController = rememberNavController()
     val viewModel: TriviaViewModel = hiltViewModel()
     val categories = viewModel.categories.collectAsState().value
     val categoriesError = viewModel.categoriesError.collectAsState().value
     val startupState = viewModel.startupState.collectAsState().value
+    val translationUnavailable = viewModel.translationUnavailable.collectAsState().value
+
+    // Runs before the bootstrap LaunchedEffect below, so the first content load already targets
+    // the language the UI is rendered in.
+    val contentLanguage = currentContentLanguage()
+    SideEffect {
+        viewModel.onContentLanguageChanged(contentLanguage)
+    }
 
     val reducedMotion = LocalReducedMotion.current
     val durationMillis = if (reducedMotion) 0 else TriviaMotion.SCREEN_TRANSITION_MILLIS
@@ -104,7 +117,10 @@ fun TriviaNavHost(
                     viewModel.loadCategories()
                 },
                 onReminderEnabledChange = onReminderEnabledChange,
-                onReminderTimeChange = onReminderTimeChange
+                onReminderTimeChange = onReminderTimeChange,
+                selectedLanguage = selectedLanguage,
+                onLanguageSelected = onLanguageSelected,
+                translationUnavailable = translationUnavailable
             )
         }
 

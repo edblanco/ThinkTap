@@ -1,5 +1,9 @@
 package com.dosparta.trivia.ui.viewmodel
 
+import com.dosparta.trivia.domain.model.AppLanguage
+import com.dosparta.trivia.domain.usecase.ObserveTranslationAvailabilityUseCase
+import com.dosparta.trivia.domain.usecase.SetContentLanguageUseCase
+import com.dosparta.trivia.ui.FakeContentLocalizationRepository
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.dosparta.trivia.domain.game.GameResult
 import com.dosparta.trivia.domain.game.GameSession
@@ -53,6 +57,7 @@ class TriviaViewModelTest {
     private lateinit var clearGameSessionUseCase: ClearGameSessionUseCase
     private lateinit var gameSessionRepository: IGameSessionRepository
     private lateinit var viewModel: TriviaViewModel
+    private val localizationRepository = FakeContentLocalizationRepository()
 
     @Before
     fun setUp() {
@@ -78,7 +83,9 @@ class TriviaViewModelTest {
             loadCategoriesUseCase = loadCategoriesUseCase,
             resolveStartupUseCase = resolveStartupUseCase,
             persistGameSessionUseCase = persistGameSessionUseCase,
-            clearGameSessionUseCase = clearGameSessionUseCase
+            clearGameSessionUseCase = clearGameSessionUseCase,
+            setContentLanguageUseCase = SetContentLanguageUseCase(localizationRepository),
+            observeTranslationAvailability = ObserveTranslationAvailabilityUseCase(localizationRepository)
         )
     }
 
@@ -116,6 +123,53 @@ class TriviaViewModelTest {
 
         assertEquals(categories, viewModel.categories.value)
         assertEquals(null, viewModel.categoriesError.value)
+    }
+
+    @Test
+    fun `content language change reloads categories once they were loaded`() = runTest {
+        val english = listOf(TriviaCategory(9, "General Knowledge"))
+        val german = listOf(TriviaCategory(9, "Allgemeinwissen"))
+        coEvery { loadCategoriesUseCase.invoke() } returns english
+        viewModel.bootstrapApp()
+        advanceUntilIdle()
+
+        coEvery { loadCategoriesUseCase.invoke() } returns german
+        viewModel.onContentLanguageChanged(AppLanguage.GERMAN)
+        advanceUntilIdle()
+
+        assertEquals(AppLanguage.GERMAN, localizationRepository.contentLanguage.value)
+        assertEquals(german, viewModel.categories.value)
+        coVerify(exactly = 2) { loadCategoriesUseCase.invoke() }
+    }
+
+    @Test
+    fun `unchanged content language does not reload categories`() = runTest {
+        coEvery { loadCategoriesUseCase.invoke() } returns listOf(TriviaCategory(9, "General Knowledge"))
+        viewModel.bootstrapApp()
+        advanceUntilIdle()
+
+        viewModel.onContentLanguageChanged(AppLanguage.ENGLISH)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { loadCategoriesUseCase.invoke() }
+    }
+
+    @Test
+    fun `content language set before bootstrap only updates the language`() = runTest {
+        coEvery { loadCategoriesUseCase.invoke() } returns emptyList()
+
+        viewModel.onContentLanguageChanged(AppLanguage.SPANISH)
+        advanceUntilIdle()
+
+        assertEquals(AppLanguage.SPANISH, localizationRepository.contentLanguage.value)
+        coVerify(exactly = 0) { loadCategoriesUseCase.invoke() }
+    }
+
+    @Test
+    fun `translation notice mirrors the localization repository`() = runTest {
+        localizationRepository.setTranslationUnavailable(true)
+
+        assertTrue(viewModel.translationUnavailable.value)
     }
 
     @Test

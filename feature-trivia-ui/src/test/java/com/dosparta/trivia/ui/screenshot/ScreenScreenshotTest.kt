@@ -2,6 +2,7 @@ package com.dosparta.trivia.ui.screenshot
 
 import androidx.compose.foundation.rememberScrollState
 import com.dosparta.trivia.domain.game.GameResult
+import com.dosparta.trivia.domain.model.AppLanguage
 import com.dosparta.trivia.ui.components.ErrorScreen
 import com.dosparta.trivia.ui.components.LoadingScreen
 import com.dosparta.trivia.ui.preview.PreviewFixtures
@@ -12,6 +13,7 @@ import com.dosparta.trivia.ui.screens.StartupScreen
 import com.dosparta.trivia.ui.screens.TriviaGameContent
 import com.dosparta.core.ui.screenshot.ScreenshotTest
 import org.junit.Test
+import org.robolectric.annotation.Config
 
 /**
  * Golden images for every screen state that carries distinct visual meaning.
@@ -55,6 +57,36 @@ class ScreenScreenshotTest : ScreenshotTest() {
             onRetryLoadCategories = {},
             onReminderEnabledChange = {},
             onReminderTimeChange = { _, _ -> }
+        )
+    }
+
+    /** German UI with the language picker set and the translation fallback notice visible. */
+    @Test
+    @Config(qualifiers = "+de")
+    fun setupScreenGermanTranslationUnavailable() = captureScreen("setup_screen_de_translation_unavailable") {
+        SetupScreen(
+            categories = PreviewFixtures.categories,
+            categoriesError = null,
+            reminderEnabled = false,
+            reminderHour = REMINDER_HOUR,
+            reminderMinute = REMINDER_MINUTE,
+            onStartGame = {},
+            onRetryLoadCategories = {},
+            onReminderEnabledChange = {},
+            onReminderTimeChange = { _, _ -> },
+            selectedLanguage = AppLanguage.GERMAN,
+            translationUnavailable = true
+        )
+    }
+
+    /** Spanish UI: localized difficulty chip and True/False answers. */
+    @Test
+    @Config(qualifiers = "+es")
+    fun triviaGameSpanishBoolean() = captureScreen("trivia_game_es_boolean") {
+        TriviaGameContent(
+            session = PreviewFixtures.booleanSession,
+            onAnswerConfirmed = {},
+            onRetry = {}
         )
     }
 

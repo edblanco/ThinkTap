@@ -37,6 +37,12 @@ android {
     buildFeatures {
         compose = true
     }
+    androidResources {
+        // Publishes the supported languages to Android 13+ per-app language settings.
+        generateLocaleConfig = true
+        // Keep library resources (AppCompat, Material, ...) to the languages the app supports.
+        localeFilters += listOf("en", "de", "es", "zh-rCN")
+    }
 }
 
 kotlin {
@@ -49,7 +55,10 @@ dependencies {
     implementation(project(":core-ui"))
     implementation(project(":feature-trivia-ui"))
 
+    implementation(project(":trivia-domain"))
+
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_permission_denied">需要通知权限才能启用每日提醒。</string>
+    <string name="daily_reminder_channel_name">每日问答提醒</string>
+    <string name="daily_reminder_channel_description">提醒你完成每日知识问答。</string>
+    <string name="daily_reminder_title">每日问答时间到了！</string>
+    <string name="daily_reminder_body">回来开始新一轮知识问答，挑战一下自己吧。</string>
+</resources>

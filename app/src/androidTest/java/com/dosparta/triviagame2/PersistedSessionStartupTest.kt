@@ -1,5 +1,10 @@
 package com.dosparta.triviagame2
 
+import com.dosparta.trivia.domain.localization.IContentLocalizationRepository
+import com.dosparta.trivia.domain.model.AppLanguage
+import com.dosparta.trivia.domain.usecase.ObserveTranslationAvailabilityUseCase
+import com.dosparta.trivia.domain.usecase.SetContentLanguageUseCase
+import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -74,6 +79,16 @@ class PersistedSessionStartupTest {
             override suspend fun getCategories(): List<TriviaCategory> = emptyList()
         }
 
+        val localizationRepository = object : IContentLocalizationRepository {
+            override val contentLanguage = MutableStateFlow(AppLanguage.ENGLISH)
+            override val translationUnavailable = MutableStateFlow(false)
+            override fun setContentLanguage(language: AppLanguage) {
+                contentLanguage.value = language
+            }
+            override fun setTranslationUnavailable(unavailable: Boolean) {
+                translationUnavailable.value = unavailable
+            }
+        }
         val viewModel = TriviaViewModel(
             startGame = StartGameSession(fakeRepo),
             submitAnswer = SubmitAnswerUseCase(GameEngine()),
@@ -81,7 +96,9 @@ class PersistedSessionStartupTest {
             loadCategoriesUseCase = LoadCategoriesUseCase(fakeRepo),
             resolveStartupUseCase = ResolveAppStartupUseCase(fakeSessionRepo),
             persistGameSessionUseCase = PersistGameSessionUseCase(fakeSessionRepo),
-            clearGameSessionUseCase = ClearGameSessionUseCase(fakeSessionRepo)
+            clearGameSessionUseCase = ClearGameSessionUseCase(fakeSessionRepo),
+            setContentLanguageUseCase = SetContentLanguageUseCase(localizationRepository),
+            observeTranslationAvailability = ObserveTranslationAvailabilityUseCase(localizationRepository)
         )
 
         composeRule.setContent {

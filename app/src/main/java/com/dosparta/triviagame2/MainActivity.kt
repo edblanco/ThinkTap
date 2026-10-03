@@ -5,9 +5,9 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,19 +15,24 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import com.dosparta.trivia.domain.model.AppLanguage
 import com.dosparta.trivia.ui.navigation.TriviaNavHost
 import com.dosparta.trivia.ui.viewmodel.TriviaViewModel
+import com.dosparta.triviagame2.language.AppLanguageManager
 import com.dosparta.triviagame2.reminder.DailyQuizReminderManager
 import com.dosparta.triviagame2.reminder.ReminderSettings
 import com.dosparta.core.ui.theme.TriviaGame2Theme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+// AppCompatActivity (rather than ComponentActivity) is required for per-app language switching.
+class MainActivity : AppCompatActivity() {
 
     private val viewModel: TriviaViewModel by viewModels()
     private val reminderManager by lazy { DailyQuizReminderManager(applicationContext) }
     private var reminderSettings by mutableStateOf(ReminderSettings())
+    private val languageManager = AppLanguageManager()
+    private var languageOverride by mutableStateOf<AppLanguage?>(null)
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -48,6 +53,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         reminderSettings = reminderManager.getSettings()
+        languageOverride = languageManager.currentOverride()
         reminderManager.rescheduleFromPreferences()
 
         lifecycle.addObserver(object : DefaultLifecycleObserver {
@@ -79,6 +85,13 @@ class MainActivity : ComponentActivity() {
                     },
                     onReminderTimeChange = { hour, minute ->
                         reminderSettings = reminderManager.setTime(hour, minute)
+                    },
+                    selectedLanguage = languageOverride,
+                    onLanguageSelected = { language ->
+                        if (language != languageOverride) {
+                            languageOverride = language
+                            languageManager.applyOverride(language)
+                        }
                     }
                 )
             }
