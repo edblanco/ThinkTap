@@ -4,21 +4,17 @@ import com.dosparta.trivia.domain.model.TriviaConfig
 import com.dosparta.trivia.domain.model.TriviaQuestion
 import com.dosparta.trivia.domain.repository.ITriviaRepository
 import kotlinx.coroutines.runBlocking
+import io.mockk.MockKAnnotations
+import io.mockk.coEvery
+import io.mockk.impl.annotations.MockK
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.mockito.Mock
-import org.mockito.junit.MockitoJUnitRunner
-import org.mockito.kotlin.any
-import org.mockito.kotlin.whenever
-
-@RunWith(MockitoJUnitRunner::class)
 class StartGameSessionTest {
 
-    @Mock
+    @MockK
     private lateinit var repo: ITriviaRepository
 
     private lateinit var startSession: StartGameSession
@@ -27,6 +23,7 @@ class StartGameSessionTest {
 
     @Before
     fun setUp() {
+        MockKAnnotations.init(this)
         val sample = TriviaQuestion(
             category = "General",
             type = "boolean",
@@ -39,7 +36,7 @@ class StartGameSessionTest {
         config = TriviaConfig(amount = 10, categoryId = 9, difficulty = "easy")
 
         runBlocking {
-            whenever(repo.getQuestions(any<TriviaConfig>())).thenReturn(sampleList)
+            coEvery { repo.getQuestions(any<TriviaConfig>()) } returns sampleList
         }
 
         startSession = StartGameSession(repo)
@@ -60,7 +57,7 @@ class StartGameSessionTest {
 
     @Test
     fun `invoke propagates exception from repository`() = runBlocking {
-        whenever(repo.getQuestions(any<TriviaConfig>())).thenThrow(RuntimeException("API down"))
+        coEvery { repo.getQuestions(any<TriviaConfig>()) } throws RuntimeException("API down")
 
         try {
             startSession(config)

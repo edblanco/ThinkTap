@@ -4,20 +4,16 @@ import com.dosparta.trivia.domain.model.TriviaConfig
 import com.dosparta.trivia.domain.model.TriviaQuestion
 import com.dosparta.trivia.domain.repository.ITriviaRepository
 import kotlinx.coroutines.runBlocking
+import io.mockk.MockKAnnotations
+import io.mockk.impl.annotations.MockK
+import io.mockk.coEvery
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.mockito.Mock
-import org.mockito.junit.MockitoJUnitRunner
-import org.mockito.kotlin.any
-import org.mockito.kotlin.whenever
-
-@RunWith(MockitoJUnitRunner::class)
 class GetTriviaQuestionsTest {
 
-    @Mock
+    @MockK
     private lateinit var repo: ITriviaRepository
 
     private lateinit var getTrivia: GetTriviaQuestions
@@ -26,6 +22,7 @@ class GetTriviaQuestionsTest {
 
     @Before
     fun setUp() {
+        MockKAnnotations.init(this)
         // Create a single sample TriviaQuestion
         val sample = TriviaQuestion(
             category = "General",
@@ -39,7 +36,7 @@ class GetTriviaQuestionsTest {
         sampleConfig = TriviaConfig(amount = 10)
 
         runBlocking {
-            whenever(repo.getQuestions(any<TriviaConfig>())).thenReturn(sampleList)
+            coEvery { repo.getQuestions(any<TriviaConfig>()) } returns sampleList
         }
 
         getTrivia = GetTriviaQuestions(repo)
@@ -55,7 +52,7 @@ class GetTriviaQuestionsTest {
 
     @Test
     fun `invoke propagates exception from repository`() = runBlocking {
-        whenever(repo.getQuestions(any<TriviaConfig>())).thenThrow(RuntimeException("Network error"))
+        coEvery { repo.getQuestions(any<TriviaConfig>()) } throws RuntimeException("Network error")
 
         try {
             getTrivia(sampleConfig)

@@ -7,23 +7,20 @@ import com.dosparta.trivia.domain.repository.GameSessionState
 import com.dosparta.trivia.domain.repository.IGameSessionRepository
 import com.dosparta.trivia.domain.repository.ITriviaRepository
 import kotlinx.coroutines.runBlocking
+import io.mockk.MockKAnnotations
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.impl.annotations.MockK
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.mockito.Mock
-import org.mockito.junit.MockitoJUnitRunner
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-
-@RunWith(MockitoJUnitRunner::class)
 class AppStartupUseCasesTest {
 
-    @Mock
+    @MockK
     private lateinit var gameSessionRepository: IGameSessionRepository
 
-    @Mock
+    @MockK
     private lateinit var triviaRepository: ITriviaRepository
 
     private lateinit var resolveAppStartupUseCase: ResolveAppStartupUseCase
@@ -33,6 +30,7 @@ class AppStartupUseCasesTest {
 
     @Before
     fun setUp() {
+        MockKAnnotations.init(this, relaxUnitFun = true)
         resolveAppStartupUseCase = ResolveAppStartupUseCase(gameSessionRepository)
         persistGameSessionUseCase = PersistGameSessionUseCase(gameSessionRepository)
         clearGameSessionUseCase = ClearGameSessionUseCase(gameSessionRepository)
@@ -59,7 +57,7 @@ class AppStartupUseCasesTest {
             selectedAnswers = mapOf(0 to "Water")
         )
 
-        whenever(gameSessionRepository.getActiveSession()).thenReturn(session)
+        coEvery { gameSessionRepository.getActiveSession() } returns session
 
         val result = resolveAppStartupUseCase()
 
@@ -69,7 +67,7 @@ class AppStartupUseCasesTest {
 
     @Test
     fun `resolve app startup loads categories when no active session exists`() = runBlocking {
-        whenever(gameSessionRepository.getActiveSession()).thenReturn(null)
+        coEvery { gameSessionRepository.getActiveSession() } returns null
 
         val result = resolveAppStartupUseCase()
 
@@ -98,20 +96,20 @@ class AppStartupUseCasesTest {
             selectedAnswers = selectedAnswers
         )
 
-        verify(gameSessionRepository).saveGameSession(
+        coVerify { gameSessionRepository.saveGameSession(
             questions = questions,
             currentIndex = 1,
             correctCount = 1,
             activeElapsedMillis = 99_000L,
             selectedAnswers = selectedAnswers
-        )
+        ) }
     }
 
     @Test
     fun `clear game session delegates removal to repository`() = runBlocking {
         clearGameSessionUseCase()
 
-        verify(gameSessionRepository).clearActiveSession()
+        coVerify { gameSessionRepository.clearActiveSession() }
     }
 
     @Test
@@ -120,7 +118,7 @@ class AppStartupUseCasesTest {
             TriviaCategory(id = 9, name = "General Knowledge"),
             TriviaCategory(id = 17, name = "Science & Nature")
         )
-        whenever(triviaRepository.getCategories()).thenReturn(categories)
+        coEvery { triviaRepository.getCategories() } returns categories
 
         val result = loadCategoriesUseCase()
 

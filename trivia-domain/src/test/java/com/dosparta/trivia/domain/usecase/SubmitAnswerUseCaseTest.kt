@@ -4,20 +4,15 @@ import com.dosparta.trivia.domain.game.GameEngine
 import com.dosparta.trivia.domain.game.GameSession
 import com.dosparta.trivia.domain.model.TriviaQuestion
 import kotlinx.coroutines.runBlocking
+import io.mockk.MockKAnnotations
+import io.mockk.every
+import io.mockk.impl.annotations.MockK
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.mockito.Mock
-import org.mockito.junit.MockitoJUnitRunner
-import org.mockito.kotlin.any
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.whenever
-
-@RunWith(MockitoJUnitRunner::class)
 class SubmitAnswerUseCaseTest {
 
-    @Mock
+    @MockK
     private lateinit var engine: GameEngine
 
     private lateinit var submitUseCase: SubmitAnswerUseCase
@@ -29,6 +24,7 @@ class SubmitAnswerUseCaseTest {
 
     @Before
     fun setUp() {
+        MockKAnnotations.init(this)
         submitUseCase = SubmitAnswerUseCase(engine)
 
         val sample = TriviaQuestion(
@@ -57,11 +53,9 @@ class SubmitAnswerUseCaseTest {
         )
 
         // STUB engine.submitAnswer without calling it:
-        whenever(engine.submitAnswer(eq(initialSession), eq("A")))
-            .thenReturn(updatedSessionCorrect)
+        every { engine.submitAnswer(eq(initialSession), eq("A")) } returns updatedSessionCorrect
 
-        whenever(engine.submitAnswer(eq(initialSession), eq("B")))
-            .thenReturn(updatedSessionWrong)
+        every { engine.submitAnswer(eq(initialSession), eq("B")) } returns updatedSessionWrong
     }
 
     @Test
@@ -81,8 +75,7 @@ class SubmitAnswerUseCaseTest {
     @Test(expected = RuntimeException::class)
     fun `invoke propagates exception from engine`() {
         runBlocking {
-            whenever(engine.submitAnswer(any(), any()))
-                .thenThrow(RuntimeException("Engine failure"))
+            every { engine.submitAnswer(any(), any()) } throws RuntimeException("Engine failure")
 
             // Should throw
             submitUseCase(initialSession, "X")
