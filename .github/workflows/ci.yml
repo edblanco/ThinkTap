@@ -40,8 +40,8 @@ jobs:
         uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
         with:
           cache-read-only: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
-      - name: Run all JVM tests
-        run: ./gradlew test --continue --stacktrace
+      - name: Run all JVM tests and require 70% business-logic line coverage
+        run: ./gradlew test jacocoRootCoverageVerification --continue --stacktrace
       - name: Upload JVM test reports
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
@@ -50,6 +50,7 @@ jobs:
           path: |
             **/build/reports/tests/
             **/build/test-results/
+            build/reports/jacoco/jacocoRootReport/
           retention-days: 14
           if-no-files-found: warn
 
