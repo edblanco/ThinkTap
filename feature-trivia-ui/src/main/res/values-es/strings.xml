@@ -28,6 +28,11 @@
     <string name="play_again">Jugar de nuevo</string>
     <string name="start_new_game">Nueva partida</string>
     <string name="next_question">Siguiente pregunta</string>
+    <string name="finish_game">Terminar partida</string>
+    <string name="finish_game_confirm_title">¿Terminar la partida ahora?</string>
+    <string name="finish_game_confirm_message">Las preguntas sin responder contarán como incorrectas.</string>
+    <string name="finish_game_confirm">Terminar</string>
+    <string name="cancel">Cancelar</string>
     <string name="daily_reminder">Recordatorio diario</string>
     <string name="daily_reminder_time">Hora del recordatorio: %1$s</string>
     <string name="change_time">Cambiar hora</string>

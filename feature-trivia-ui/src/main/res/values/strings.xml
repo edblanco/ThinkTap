@@ -27,6 +27,11 @@
     <string name="play_again">Play Again</string>
     <string name="start_new_game">Start New Game</string>
     <string name="next_question">Next Question</string>
+    <string name="finish_game">Finish game</string>
+    <string name="finish_game_confirm_title">End game now?</string>
+    <string name="finish_game_confirm_message">Unanswered questions will count as incorrect.</string>
+    <string name="finish_game_confirm">Finish</string>
+    <string name="cancel">Cancel</string>
     <string name="daily_reminder">Daily reminder</string>
     <string name="daily_reminder_time">Reminder time: %1$s</string>
     <string name="change_time">Change time</string>

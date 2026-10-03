@@ -262,6 +262,42 @@ class TriviaViewModelTest {
     }
 
     @Test
+    fun `finishEarly emits result counting unanswered questions as incorrect`() = runTest {
+        val questions = List(4) { index ->
+            TriviaQuestion("General", "boolean", "easy", "Question $index", "True", listOf("True", "False"))
+        }
+        val inProgress = GameSession(questions = questions, currentIndex = 2, correctCount = 1, startTimeMillis = 0L)
+        coEvery { startGame.invoke(any()) } returns inProgress
+        val expectedResult = GameResult(totalQuestions = 4, correctAnswers = 1, durationMillis = 100L)
+        coEvery { finishGame.invoke(inProgress) } returns expectedResult
+
+        viewModel.loadQuestions(TriviaConfig(amount = 10))
+        advanceUntilIdle()
+        viewModel.finishEarly()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is TriviaUiState.Result)
+        assertEquals(expectedResult, state.result)
+        assertEquals(3, state.result.incorrectAnswers)
+        coVerify(exactly = 1) { finishGame.invoke(inProgress) }
+        coVerify(exactly = 1) { clearGameSessionUseCase.invoke() }
+
+        assertTrue(viewModel.replayLastGame())
+        assertEquals(questions, (viewModel.uiState.value as TriviaUiState.Game).session.questions)
+    }
+
+    @Test
+    fun `finishEarly is a no-op when no game is in progress`() = runTest {
+        viewModel.finishEarly()
+        advanceUntilIdle()
+
+        assertEquals(TriviaUiState.Idle, viewModel.uiState.value)
+        coVerify(exactly = 0) { finishGame.invoke(any()) }
+        coVerify(exactly = 0) { clearGameSessionUseCase.invoke() }
+    }
+
+    @Test
     fun `loadQuestions ignores duplicate requests while a load is already in progress`() = runTest {
         val session = GameSession(
             questions = listOf(
