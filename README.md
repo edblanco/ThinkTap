@@ -19,6 +19,9 @@ connected device.
 From the repository root:
 
 ```bash
+# Build and publish the independent SDK to sdk/build/repository
+./sdk/gradlew -p sdk publish
+
 # Build the debug APK
 ./gradlew :app:assembleDebug
 
@@ -26,21 +29,36 @@ From the repository root:
 ./gradlew :app:installDebug
 ```
 
-## Project modules
+For local SDK source development, use `./gradlew -PuseLocalTriviaSdk=true :app:assembleDebug`.
+The normal build uses versioned Maven artifacts, not project dependencies. See
+[SDK integration](sdk/README.md) for publication, API, and lifecycle details.
+
+## Independent projects
+
+The repository root is the application build. [sdk/](sdk/) is a separate Gradle build
+with its own wrapper, settings, dependency catalog, tests, and publication configuration.
+The SDK has no dependency on the application or its UI.
 
 | Module | Responsibility |
 |---|---|
 | `app` | Android application entry point, language settings, and daily quiz reminders |
 | `feature-trivia-ui` | Trivia game and setup user interface |
-| `trivia-domain` | Trivia and game business logic |
-| `data-trivia` | Trivia data and repository implementations |
-| `core-network` | Network access used by data modules |
 | `core-ui` | Shared Compose UI components and theme |
 | `quality-detekt-rules` | Custom Detekt rules for project code |
+| `sdk/trivia-sdk-core` | Pure Kotlin/JVM game rules, public API, and session orchestration |
+| `sdk/trivia-sdk-android` | SDK initialization, OpenTDB, Room storage, and ML Kit content translation |
+| `sdk/trivia-sdk-network` | SDK-owned internal network infrastructure |
+| `sdk/quality-detekt-rules` | SDK-owned static analysis rules |
 
 ## Tests and quality checks
 
 ```bash
+# Independently test/analyze the SDK and enforce 70% core line coverage
+./sdk/gradlew -p sdk check
+
+# Verify a standalone JVM consumer using published artifacts
+./sdk/gradlew -p sdk/samples/jvm-consumer run
+
 # JVM and Robolectric unit tests
 ./gradlew test
 
@@ -51,6 +69,7 @@ From the repository root:
 ./gradlew verifyRoborazziDebug
 
 # Run instrumentation tests (requires a connected device or emulator)
+./sdk/gradlew -p sdk connectedDebugAndroidTest
 ./gradlew connectedDebugAndroidTest
 ```
 
@@ -60,6 +79,7 @@ See the guides below for CI coverage requirements, screenshot testing, and local
 
 - [Localization](docs/localization.md) — supported languages, runtime content translation, and
   instructions for adding a language.
+- [Trivia SDK](sdk/README.md) — independent builds, public API, publication, and integration.
 - [Pull-request CI](docs/ci.md) — workflow triggers, required checks, coverage gate, and failure
   reports.
 - [Screenshot testing](docs/screenshot-testing.md) — recording and verifying Compose screenshot

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="error_persistence">Das gespeicherte Spiel konnte nicht aktualisiert werden. Dein Fortschritt wird möglicherweise nicht korrekt wiederhergestellt. Bitte versuche es erneut.</string>
     <string name="error_no_internet">Keine Internetverbindung. Bitte überprüfe dein Netzwerk und versuche es erneut.</string>
     <string name="error_network_loading_failed">Netzwerkfehler beim Laden der Fragen. Bitte versuche es erneut.</string>
     <string name="error_network_occurred">Ein Netzwerkfehler ist aufgetreten</string>

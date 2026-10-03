@@ -1,4 +1,5 @@
 <resources>
+    <string name="error_persistence">Could not update the saved game. Your progress may not be restored correctly. Please retry.</string>
     <string name="error_no_internet">No internet connection. Please check your network and retry.</string>
     <string name="error_network_loading_failed">Network error while loading questions. Please try again.</string>
     <string name="error_network_occurred">Network error occurred</string>

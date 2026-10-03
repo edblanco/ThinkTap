@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="error_persistence">No se pudo actualizar la partida guardada. Es posible que tu progreso no se restaure correctamente. Vuelve a intentarlo.</string>
     <string name="error_no_internet">Sin conexión a internet. Comprueba tu red y vuelve a intentarlo.</string>
     <string name="error_network_loading_failed">Error de red al cargar las preguntas. Inténtalo de nuevo.</string>
     <string name="error_network_occurred">Se produjo un error de red</string>

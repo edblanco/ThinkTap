@@ -1,0 +1,253 @@
+package com.dosparta.trivia.data.repository
+
+import android.os.Build
+import com.dosparta.trivia.data.local.dao.GameSessionDao
+import com.dosparta.trivia.data.local.entity.GameSessionEntity
+import com.dosparta.trivia.domain.model.TriviaQuestion
+import com.dosparta.trivia.sdk.TriviaError
+import com.dosparta.trivia.sdk.TriviaSdkException
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
+import io.mockk.MockKAnnotations
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.impl.annotations.MockK
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
+import org.junit.Assert.fail
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [Build.VERSION_CODES.N])
+class GameSessionRepositoryImplTest {
+
+    @MockK
+    private lateinit var dao: GameSessionDao
+
+    private lateinit var repository: GameSessionRepositoryImpl
+
+    private val sampleQuestions = listOf(
+        TriviaQuestion(
+            category = "Science",
+            type = "multiple",
+            difficulty = "easy",
+            question = "What is H2O?",
+            correctAnswer = "Water",
+            options = listOf("Water", "Salt", "Sugar", "Ice")
+        )
+    )
+
+    @Before
+    fun setUp() {
+        MockKAnnotations.init(this, relaxUnitFun = true)
+        repository = GameSessionRepositoryImpl(dao)
+    }
+
+    @Test
+    fun `saveGameSession calls dao insertOrReplaceSession`() = runBlocking {
+        val currentIndex = 0
+        val correctCount = 0
+        val activeElapsedMillis = System.currentTimeMillis()
+
+        repository.saveGameSession(
+            questions = sampleQuestions,
+            currentIndex = currentIndex,
+            correctCount = correctCount,
+            activeElapsedMillis = activeElapsedMillis,
+            selectedAnswers = emptyMap()
+        )
+
+        coVerify { dao.insertOrReplaceSession(any<GameSessionEntity>()) }
+    }
+
+    @Test
+    fun `saveGameSession passes correct data to dao`() = runBlocking {
+        val currentIndex = 1
+        val correctCount = 5
+        val activeElapsedMillis = System.currentTimeMillis()
+
+        repository.saveGameSession(
+            questions = sampleQuestions,
+            currentIndex = currentIndex,
+            correctCount = correctCount,
+            activeElapsedMillis = activeElapsedMillis,
+            selectedAnswers = emptyMap()
+        )
+
+        coVerify { dao.insertOrReplaceSession(any()) }
+    }
+
+    @Test
+    fun `getActiveSessionFlow returns flow from dao`() = runBlocking {
+        val entity = GameSessionEntity(
+            amount = 1,
+            categoryId = null,
+            difficulty = null,
+            questionsJson = "[{\"category\":\"Science\",\"type\":\"multiple\",\"difficulty\":\"easy\",\"question\":\"What is H2O?\",\"correctAnswer\":\"Water\",\"options\":[\"Water\",\"Salt\",\"Sugar\",\"Ice\"]}]",
+            startedAtMillis = System.currentTimeMillis()
+        )
+
+        every { dao.getActiveSession() } returns flowOf(entity)
+
+        repository.getActiveSessionFlow().collect { state ->
+            assertNotNull(state)
+            assertEquals(1, state?.questions?.size)
+        }
+    }
+
+    @Test
+    fun `getActiveSessionFlow returns null when no active session`() = runBlocking {
+        every { dao.getActiveSession() } returns flowOf(null)
+
+        repository.getActiveSessionFlow().collect { state ->
+            assertNull(state)
+        }
+    }
+
+    @Test
+    fun `getActiveSession queries dao and returns game session state`() = runBlocking {
+        val entity = GameSessionEntity(
+            amount = 1,
+            categoryId = null,
+            difficulty = null,
+            questionsJson = "[{\"category\":\"Science\",\"type\":\"multiple\",\"difficulty\":\"easy\",\"question\":\"What is H2O?\",\"correctAnswer\":\"Water\",\"options\":[\"Water\",\"Salt\",\"Sugar\",\"Ice\"]}]",
+            startedAtMillis = System.currentTimeMillis(),
+            currentIndex = 0,
+            correctCount = 0
+        )
+
+        coEvery { dao.getActiveSessionOnce() } returns entity
+
+        val state = repository.getActiveSession()
+
+        assertNotNull(state)
+        assertEquals(1, state?.questions?.size)
+        assertEquals(0, state?.currentIndex)
+        assertEquals(0, state?.correctCount)
+    }
+
+    @Test
+    fun `getActiveSession returns null when dao returns null`() = runBlocking {
+        coEvery { dao.getActiveSessionOnce() } returns null
+
+        val state = repository.getActiveSession()
+
+        assertNull(state)
+    }
+
+    @Test
+    fun `clearActiveSession calls dao clearActiveSession`() = runBlocking {
+        repository.clearActiveSession()
+
+        coVerify { dao.clearActiveSession() }
+    }
+
+    @Test
+    fun `saveGameSession with selected answers preserves mapping`() = runBlocking {
+        val selectedAnswers = mapOf(0 to "Water", 1 to "Salt")
+
+        repository.saveGameSession(
+            questions = sampleQuestions,
+            currentIndex = 0,
+            correctCount = 0,
+            activeElapsedMillis = System.currentTimeMillis(),
+            selectedAnswers = selectedAnswers
+        )
+
+        coVerify { dao.insertOrReplaceSession(any()) }
+    }
+
+    @Test
+    fun `getActiveSession properly deserializes selected answers`() = runBlocking {
+        val entity = GameSessionEntity(
+            amount = 1,
+            categoryId = null,
+            difficulty = null,
+            questionsJson = "[{\"category\":\"Science\",\"type\":\"multiple\",\"difficulty\":\"easy\",\"question\":\"What is H2O?\",\"correctAnswer\":\"Water\",\"options\":[\"Water\",\"Salt\",\"Sugar\",\"Ice\"]}]",
+            selectedAnswersJson = "{\"0\":\"Water\"}",
+            startedAtMillis = System.currentTimeMillis(),
+            currentIndex = 1,
+            correctCount = 1
+        )
+
+        coEvery { dao.getActiveSessionOnce() } returns entity
+
+        val state = repository.getActiveSession()
+
+        assertNotNull(state)
+        assertEquals(1, state?.selectedAnswers?.size)
+        assertEquals("Water", state?.selectedAnswers?.get(0))
+    }
+
+    @Test
+    fun `getActiveSession handles empty selected answers json gracefully`() = runBlocking {
+        val entity = GameSessionEntity(
+            amount = 1,
+            categoryId = null,
+            difficulty = null,
+            questionsJson = "[{\"category\":\"Science\",\"type\":\"multiple\",\"difficulty\":\"easy\",\"question\":\"What is H2O?\",\"correctAnswer\":\"Water\",\"options\":[\"Water\",\"Salt\",\"Sugar\",\"Ice\"]}]",
+            selectedAnswersJson = null,
+            startedAtMillis = System.currentTimeMillis(),
+            currentIndex = 0,
+            correctCount = 0
+        )
+
+        coEvery { dao.getActiveSessionOnce() } returns entity
+
+        val state = repository.getActiveSession()
+
+        assertNotNull(state)
+        assertEquals(0, state?.selectedAnswers?.size)
+    }
+
+    @Test
+    fun `DAO failure becomes typed persistence failure`() = runBlocking {
+        val failure = IllegalStateException("database unavailable")
+        coEvery { dao.getActiveSessionOnce() } throws failure
+
+        try {
+            repository.getActiveSession()
+            fail("Expected persistence failure")
+        } catch (error: TriviaSdkException) {
+            assertEquals(TriviaError.PERSISTENCE, error.error)
+            assertSame(failure, error.cause)
+        }
+    }
+
+    @Test
+    fun `flow failures become typed persistence failures`() = runBlocking {
+        val failure = IllegalStateException("database unavailable")
+        every { dao.getActiveSession() } returns flow { throw failure }
+
+        try {
+            repository.getActiveSessionFlow().first()
+            fail("Expected persistence failure")
+        } catch (error: TriviaSdkException) {
+            assertEquals(TriviaError.PERSISTENCE, error.error)
+            assertSame(failure, error.cause)
+        }
+    }
+
+    @Test
+    fun `DAO cancellation is not converted to persistence failure`() = runBlocking {
+        val cancellation = CancellationException("cancelled")
+        coEvery { dao.getActiveSessionOnce() } throws cancellation
+
+        try {
+            repository.getActiveSession()
+            fail("Expected cancellation")
+        } catch (error: CancellationException) {
+            assertEquals(cancellation.message, error.message)
+        }
+    }
+}

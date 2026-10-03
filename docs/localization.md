@@ -29,10 +29,12 @@ Two kinds of text need translating:
 
 The content language always follows the language the UI was resolved to.
 `R.string.content_language_tag` is translated in each `values-*` folder. `TriviaNavHost` reads it
-and passes it to `TriviaViewModel.onContentLanguageChanged`, which saves it in
-`IContentLocalizationRepository` and reloads the categories if they were already loaded.
+and passes it to `TriviaViewModel.onContentLanguageChanged`, which forwards it to
+`TriviaSdk.setContentLanguage` and reloads categories if they were already loaded.
+The app owns locale preferences and UI strings; the independent SDK owns content
+localization.
 
-`TranslatingTriviaRepository` wraps the OpenTDB repository and returns English content unchanged.
+The SDK's internal `TranslatingTriviaRepository` wraps the OpenTDB repository and returns English content unchanged.
 For any other language it calls `TriviaContentTranslator`, which:
 
 - translates each distinct string only once, and builds both `options` and `correctAnswer` from
@@ -58,9 +60,11 @@ language it started in, even if the app language has changed since.
 
 ## Adding a language
 
-1. Add an entry to `AppLanguage`. Add its ML Kit code in `MlKitTextTranslator` and its display
-   name string in `LocalizedContent.kt`.
+1. Add an entry to `AppLanguage` in `sdk/trivia-sdk-core`. Add its ML Kit code in
+   `MlKitTextTranslator` in `sdk/trivia-sdk-android` and its display name string in the
+   app's `LocalizedContent.kt`.
 2. Add a `values-<qualifier>/strings.xml` to `app` and `feature-trivia-ui` with every string that
    can be translated, including `content_language_tag`.
 3. Add the qualifier to `localeFilters` in `app/build.gradle.kts`.
-4. Run `./gradlew lintDebug` to catch missing translations (`MissingTranslation`).
+4. Run `./sdk/gradlew -p sdk check publish`, then `./gradlew lintDebug` to catch missing
+   UI translations (`MissingTranslation`).

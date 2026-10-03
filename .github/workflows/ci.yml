@@ -40,8 +40,12 @@ jobs:
         uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
         with:
           cache-read-only: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
-      - name: Run all JVM tests and require 70% business-logic line coverage
-        run: ./gradlew test jacocoRootCoverageVerification --continue --stacktrace
+      - name: Verify SDK independently and publish versioned artifacts
+        run: ./sdk/gradlew -p sdk check publish --continue --stacktrace
+      - name: Verify isolated JVM consumer against published SDK
+        run: ./sdk/gradlew -p sdk/samples/jvm-consumer run --stacktrace
+      - name: Run application JVM tests against published SDK artifacts
+        run: ./gradlew test --continue --stacktrace
       - name: Upload JVM test reports
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
@@ -50,7 +54,9 @@ jobs:
           path: |
             **/build/reports/tests/
             **/build/test-results/
-            build/reports/jacoco/jacocoRootReport/
+            sdk/trivia-sdk-core/build/reports/jacoco/
+            **/build/reports/lint-results*
+            **/build/reports/detekt/
           retention-days: 14
           if-no-files-found: warn
 
@@ -77,6 +83,8 @@ jobs:
         uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
         with:
           cache-read-only: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+      - name: Publish SDK artifacts for the application
+        run: ./sdk/gradlew -p sdk publish --stacktrace
       - name: Verify all screenshot baselines
         run: ./gradlew verifyRoborazziDebug --continue --stacktrace
       - name: Upload screenshot reports and comparisons
@@ -116,6 +124,8 @@ jobs:
         uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
         with:
           cache-read-only: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+      - name: Publish SDK artifacts for the application
+        run: ./sdk/gradlew -p sdk publish --stacktrace
       - name: Enable KVM
         run: |
           echo "CPU virtualization flags: $(grep -cE '(vmx|svm)' /proc/cpuinfo || true)"
@@ -142,7 +152,9 @@ jobs:
           disable-animations: true
           disable-linux-hw-accel: false
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
-          script: ./gradlew connectedDebugAndroidTest --continue --stacktrace
+          script: |
+            ./sdk/gradlew -p sdk connectedDebugAndroidTest --continue --stacktrace
+            ./gradlew connectedDebugAndroidTest --continue --stacktrace
       - name: Upload instrumentation test reports
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0

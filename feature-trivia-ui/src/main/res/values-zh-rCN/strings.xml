@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="error_persistence">无法更新已保存的游戏。你的进度可能无法正确恢复，请重试。</string>
     <string name="error_no_internet">没有网络连接。请检查网络后重试。</string>
     <string name="error_network_loading_failed">加载题目时出现网络错误。请重试。</string>
     <string name="error_network_occurred">发生网络错误</string>
