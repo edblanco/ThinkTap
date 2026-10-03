@@ -21,10 +21,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -32,6 +34,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +56,7 @@ import com.dosparta.core.ui.components.TriviaCard
 import com.dosparta.core.ui.components.TriviaMetaChip
 import com.dosparta.core.ui.components.TriviaProgressBar
 import com.dosparta.core.ui.components.TriviaScreenScaffold
+import com.dosparta.core.ui.components.TriviaTextButton
 import com.dosparta.core.ui.theme.LocalReducedMotion
 import com.dosparta.core.ui.theme.quizColors
 import com.dosparta.trivia.domain.game.GameResult
@@ -118,6 +123,7 @@ fun TriviaScreen(
             session = state.session,
             onAnswerConfirmed = { viewModel.submit(it) },
             onRetry = { viewModel.loadQuestions() },
+            onFinishGame = { viewModel.finishEarly() },
             translationUnavailable = translationUnavailable
         )
         // todo why is this needed? Could TriviaNavHost handle this?
@@ -144,6 +150,7 @@ fun TriviaScreen(
  * @param session the in-progress game
  * @param onAnswerConfirmed called with the chosen answer once it is committed
  * @param onRetry called when the session has no usable question and the user asks to retry
+ * @param onFinishGame called once the user confirms ending the game before answering every question
  * @param translationUnavailable shows a notice that the content fell back to English
  */
 @Composable
@@ -151,6 +158,7 @@ internal fun TriviaGameContent(
     session: GameSession,
     onAnswerConfirmed: (String) -> Unit,
     onRetry: () -> Unit,
+    onFinishGame: () -> Unit = {},
     translationUnavailable: Boolean = false
 ) {
     val question = session.currentQuestion
@@ -158,6 +166,7 @@ internal fun TriviaGameContent(
         mutableStateOf<String?>(null)
     }
     val scrollState = rememberScrollState()
+    var showFinishConfirmation by rememberSaveable { mutableStateOf(false) }
 
     if (question == null) {
         ErrorScreen(message = UiText.StringResource(R.string.error_no_valid_question), onRetry = onRetry)
@@ -201,8 +210,55 @@ internal fun TriviaGameContent(
                 onAnswerConfirmed = onAnswerConfirmed,
                 scrollState = scrollState
             )
+
+            TriviaTextButton(
+                text = stringResource(R.string.finish_game),
+                onClick = { showFinishConfirmation = true },
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .testTag("finish_game_button")
+            )
         }
     }
+
+    if (showFinishConfirmation) {
+        FinishGameConfirmationDialog(
+            onConfirm = {
+                showFinishConfirmation = false
+                onFinishGame()
+            },
+            onDismiss = { showFinishConfirmation = false }
+        )
+    }
+}
+
+@Composable
+private fun FinishGameConfirmationDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.finish_game_confirm_title)) },
+        text = { Text(stringResource(R.string.finish_game_confirm_message)) },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                modifier = Modifier.testTag("finish_game_confirm_button")
+            ) {
+                Text(stringResource(R.string.finish_game_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.testTag("finish_game_cancel_button")
+            ) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+        modifier = Modifier.testTag("finish_game_dialog")
+    )
 }
 
 @Composable

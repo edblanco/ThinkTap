@@ -28,6 +28,11 @@
     <string name="play_again">再玩一次</string>
     <string name="start_new_game">开始新游戏</string>
     <string name="next_question">下一题</string>
+    <string name="finish_game">结束游戏</string>
+    <string name="finish_game_confirm_title">现在结束游戏？</string>
+    <string name="finish_game_confirm_message">未作答的题目将被计为答错。</string>
+    <string name="finish_game_confirm">结束</string>
+    <string name="cancel">取消</string>
     <string name="daily_reminder">每日提醒</string>
     <string name="daily_reminder_time">提醒时间：%1$s</string>
     <string name="change_time">更改时间</string>

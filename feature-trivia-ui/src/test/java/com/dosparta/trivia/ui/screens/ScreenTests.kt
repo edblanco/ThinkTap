@@ -49,6 +49,52 @@ class ScreenTests {
     val composeTestRule = createComposeRule()
 
     @Test
+    fun `finish game button finishes only after confirmation`() {
+        var finishCalls = 0
+        composeTestRule.setContent {
+            TriviaGame2Theme {
+                TriviaGameContent(
+                    session = GameSession(questions = listOf(gameQuestion(), gameQuestion()), startTimeMillis = 0L),
+                    onAnswerConfirmed = {},
+                    onRetry = {},
+                    onFinishGame = { finishCalls++ }
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("finish_game_button").performScrollTo().performClick()
+        composeTestRule.onNodeWithTag("finish_game_dialog").assertIsDisplayed()
+        composeTestRule.runOnIdle { assertEquals(0, finishCalls) }
+
+        composeTestRule.onNodeWithTag("finish_game_confirm_button").performClick()
+
+        composeTestRule.runOnIdle { assertEquals(1, finishCalls) }
+        composeTestRule.onNodeWithTag("finish_game_dialog").assertDoesNotExist()
+    }
+
+    @Test
+    fun `cancelling finish game dialog keeps the game going`() {
+        var finishCalls = 0
+        composeTestRule.setContent {
+            TriviaGame2Theme {
+                TriviaGameContent(
+                    session = GameSession(questions = listOf(gameQuestion()), startTimeMillis = 0L),
+                    onAnswerConfirmed = {},
+                    onRetry = {},
+                    onFinishGame = { finishCalls++ }
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("finish_game_button").performScrollTo().performClick()
+        composeTestRule.onNodeWithTag("finish_game_cancel_button").performClick()
+
+        composeTestRule.onNodeWithTag("finish_game_dialog").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("question_text").assertIsDisplayed()
+        composeTestRule.runOnIdle { assertEquals(0, finishCalls) }
+    }
+
+    @Test
     fun `game content auto confirms and resets for next index with identical question text`() {
         val question = gameQuestion()
         val session = mutableStateOf(

@@ -257,11 +257,7 @@ class TriviaViewModel @Inject constructor(
 
         val updated = submitAnswer(current, answer)
         if (updated.currentIndex >= updated.questions.size) {
-            pausedElapsedMillis = null
-            replayQuestions = updated.questions
-            _uiState.value = TriviaUiState.Result(finishGame(updated))
-            // Clear persisted session when game finishes
-            clearGameSessionAsync()
+            finish(updated)
         } else {
             _uiState.value = TriviaUiState.Game(updated)
             // Save the updated game session
@@ -269,9 +265,21 @@ class TriviaViewModel @Inject constructor(
         }
     }
 
-    /** Finalize the game and emit a [GameResult]. */
+    /**
+     * End the current game before all questions are answered. Unanswered questions count as
+     * incorrect in the resulting [GameResult].
+     */
+    fun finishEarly() {
+        val current = (_uiState.value as? TriviaUiState.Game)?.session ?: return
+        finish(current)
+    }
+
+    /** Finalize the game, emit a [GameResult] and clear the persisted session. */
     private fun finish(session: GameSession) {
+        pausedElapsedMillis = null
+        replayQuestions = session.questions
         _uiState.value = TriviaUiState.Result(finishGame(session))
+        clearGameSessionAsync()
     }
 
     /** Save the current game session to persistent storage. */
