@@ -1,0 +1,1 @@
+# Retrofit and Moshi supply their own consumer rules.

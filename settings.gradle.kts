@@ -14,6 +14,10 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        maven {
+            url = uri(providers.gradleProperty("sdkRepository").getOrElse("sdk/build/repository"))
+            content { includeGroup("com.dosparta.trivia") }
+        }
         google()
         mavenCentral()
     }
@@ -21,9 +25,10 @@ dependencyResolutionManagement {
 
 rootProject.name = "Trivia Game 2"
 include(":app")
-include(":data-trivia")
-include(":core-network")
 include(":core-ui")
-include(":trivia-domain")
 include(":feature-trivia-ui")
 include(":quality-detekt-rules")
+
+if (providers.gradleProperty("useLocalTriviaSdk").getOrElse("false").toBoolean()) {
+    includeBuild("sdk")
+}

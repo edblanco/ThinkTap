@@ -11,7 +11,14 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -21,6 +28,7 @@ import com.dosparta.trivia.domain.model.AppLanguage
 import com.dosparta.core.ui.theme.LocalReducedMotion
 import com.dosparta.core.ui.theme.TriviaMotion
 import com.dosparta.trivia.ui.currentContentLanguage
+import com.dosparta.trivia.ui.asString
 import com.dosparta.trivia.ui.screens.ResultScreen
 import com.dosparta.trivia.ui.screens.SetupScreen
 import com.dosparta.trivia.ui.screens.StartupScreen
@@ -52,6 +60,12 @@ fun TriviaNavHost(
     val categoriesError = viewModel.categoriesError.collectAsState().value
     val startupState = viewModel.startupState.collectAsState().value
     val translationUnavailable = viewModel.translationUnavailable.collectAsState().value
+    val persistenceMessage = viewModel.persistenceError.collectAsState().value?.asString()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(persistenceMessage) {
+        if (persistenceMessage != null) snackbarHostState.showSnackbar(persistenceMessage)
+    }
 
     // Runs before the bootstrap LaunchedEffect below, so the first content load already targets
     // the language the UI is rendered in.
@@ -63,107 +77,110 @@ fun TriviaNavHost(
     val reducedMotion = LocalReducedMotion.current
     val durationMillis = if (reducedMotion) 0 else TriviaMotion.SCREEN_TRANSITION_MILLIS
 
-    NavHost(
-        navController = navController,
-        startDestination = ROUTE_LOADING,
-        enterTransition = { forwardEnter(durationMillis) },
-        exitTransition = { forwardExit(durationMillis) },
-        popEnterTransition = { backEnter(durationMillis) },
-        popExitTransition = { backExit(durationMillis) }
-    ) {
-        composable(ROUTE_LOADING) {
-            LaunchedEffect(Unit) {
-                viewModel.bootstrapApp()
+    Box(Modifier.fillMaxSize()) {
+        NavHost(
+            navController = navController,
+            startDestination = ROUTE_LOADING,
+            enterTransition = { forwardEnter(durationMillis) },
+            exitTransition = { forwardExit(durationMillis) },
+            popEnterTransition = { backEnter(durationMillis) },
+            popExitTransition = { backExit(durationMillis) }
+        ) {
+            composable(ROUTE_LOADING) {
+                LaunchedEffect(Unit) {
+                    viewModel.bootstrapApp()
+                }
+
+                LaunchedEffect(startupState) {
+                    when (startupState) {
+                        is StartupUiState.NavigateToSetup -> {
+                            navController.navigate(ROUTE_SETUP) {
+                                popUpTo(ROUTE_LOADING) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                        is StartupUiState.NavigateToTrivia -> {
+                            navController.navigate(ROUTE_TRIVIA) {
+                                popUpTo(ROUTE_LOADING) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                        else -> Unit
+                    }
+                }
+
+                StartupScreen(
+                    error = (startupState as? StartupUiState.Error)?.message,
+                    onRetry = { viewModel.retryBootstrap() }
+                )
             }
 
-            LaunchedEffect(startupState) {
-                when (startupState) {
-                    is StartupUiState.NavigateToSetup -> {
+            composable(ROUTE_SETUP) {
+                SetupScreen(
+                    categories = categories,
+                    categoriesError = categoriesError,
+                    reminderEnabled = reminderEnabled,
+                    reminderHour = reminderHour,
+                    reminderMinute = reminderMinute,
+                    onStartGame = { config ->
+                        viewModel.loadQuestions(config)
+                        navController.navigate(ROUTE_TRIVIA) {
+                            popUpTo(ROUTE_SETUP) { inclusive = true }
+                        }
+                    },
+                    onRetryLoadCategories = {
+                        viewModel.loadCategories()
+                    },
+                    onReminderEnabledChange = onReminderEnabledChange,
+                    onReminderTimeChange = onReminderTimeChange,
+                    selectedLanguage = selectedLanguage,
+                    onLanguageSelected = onLanguageSelected,
+                    translationUnavailable = translationUnavailable
+                )
+            }
+
+            composable(ROUTE_TRIVIA) {
+                TriviaScreen(
+                    viewModel = viewModel,
+                    onResult = { result ->
+                        navController.navigate(
+                            "result/${result.totalQuestions}/${result.correctAnswers}/${result.durationMillis}"
+                        )
+                    }
+                )
+            }
+
+            composable(ROUTE_RESULT) { backStackEntry ->
+                val totalQuestions = backStackEntry.arguments?.getString("totalQuestions")?.toIntOrNull() ?: 0
+                val correctAnswers = backStackEntry.arguments?.getString("correctAnswers")?.toIntOrNull() ?: 0
+                val durationMillis = backStackEntry.arguments?.getString("durationMillis")?.toLongOrNull() ?: 0L
+                val result = GameResult(
+                    totalQuestions = totalQuestions,
+                    correctAnswers = correctAnswers,
+                    durationMillis = durationMillis
+                )
+
+                ResultScreen(
+                    result = result,
+                    onPlayAgain = {
+                        if (viewModel.replayLastGame()) {
+                            navController.navigate(ROUTE_TRIVIA) {
+                                popUpTo(ROUTE_RESULT) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    },
+                    onStartNewGame = {
+                        viewModel.restart()
                         navController.navigate(ROUTE_SETUP) {
-                            popUpTo(ROUTE_LOADING) { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    }
-                    is StartupUiState.NavigateToTrivia -> {
-                        navController.navigate(ROUTE_TRIVIA) {
-                            popUpTo(ROUTE_LOADING) { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    }
-                    else -> Unit
-                }
-            }
-
-            StartupScreen(
-                error = (startupState as? StartupUiState.Error)?.message,
-                onRetry = { viewModel.retryBootstrap() }
-            )
-        }
-
-        composable(ROUTE_SETUP) {
-            SetupScreen(
-                categories = categories,
-                categoriesError = categoriesError,
-                reminderEnabled = reminderEnabled,
-                reminderHour = reminderHour,
-                reminderMinute = reminderMinute,
-                onStartGame = { config ->
-                    viewModel.loadQuestions(config)
-                    navController.navigate(ROUTE_TRIVIA) {
-                        popUpTo(ROUTE_SETUP) { inclusive = true }
-                    }
-                },
-                onRetryLoadCategories = {
-                    viewModel.loadCategories()
-                },
-                onReminderEnabledChange = onReminderEnabledChange,
-                onReminderTimeChange = onReminderTimeChange,
-                selectedLanguage = selectedLanguage,
-                onLanguageSelected = onLanguageSelected,
-                translationUnavailable = translationUnavailable
-            )
-        }
-
-        composable(ROUTE_TRIVIA) {
-            TriviaScreen(
-                viewModel = viewModel,
-                onResult = { result ->
-                    navController.navigate(
-                        "result/${result.totalQuestions}/${result.correctAnswers}/${result.durationMillis}"
-                    )
-                }
-            )
-        }
-
-        composable(ROUTE_RESULT) { backStackEntry ->
-            val totalQuestions = backStackEntry.arguments?.getString("totalQuestions")?.toIntOrNull() ?: 0
-            val correctAnswers = backStackEntry.arguments?.getString("correctAnswers")?.toIntOrNull() ?: 0
-            val durationMillis = backStackEntry.arguments?.getString("durationMillis")?.toLongOrNull() ?: 0L
-            val result = GameResult(
-                totalQuestions = totalQuestions,
-                correctAnswers = correctAnswers,
-                durationMillis = durationMillis
-            )
-
-            ResultScreen(
-                result = result,
-                onPlayAgain = {
-                    if (viewModel.replayLastGame()) {
-                        navController.navigate(ROUTE_TRIVIA) {
                             popUpTo(ROUTE_RESULT) { inclusive = true }
                             launchSingleTop = true
                         }
                     }
-                },
-                onStartNewGame = {
-                    viewModel.restart()
-                    navController.navigate(ROUTE_SETUP) {
-                        popUpTo(ROUTE_RESULT) { inclusive = true }
-                        launchSingleTop = true
-                    }
-                }
-            )
+                )
+            }
         }
+        SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
     }
 }
 

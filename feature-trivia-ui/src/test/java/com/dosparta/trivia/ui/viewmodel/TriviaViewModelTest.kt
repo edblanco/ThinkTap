@@ -1,329 +1,207 @@
 package com.dosparta.trivia.ui.viewmodel
 
-import com.dosparta.trivia.domain.model.AppLanguage
-import com.dosparta.trivia.domain.usecase.ObserveTranslationAvailabilityUseCase
-import com.dosparta.trivia.domain.usecase.SetContentLanguageUseCase
-import com.dosparta.trivia.ui.FakeContentLocalizationRepository
-import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import android.util.Log
 import com.dosparta.trivia.domain.game.GameResult
 import com.dosparta.trivia.domain.game.GameSession
+import com.dosparta.trivia.domain.model.AppLanguage
 import com.dosparta.trivia.domain.model.TriviaCategory
 import com.dosparta.trivia.domain.model.TriviaConfig
-import com.dosparta.trivia.domain.model.TriviaQuestion
-import com.dosparta.trivia.domain.repository.IGameSessionRepository
-import com.dosparta.trivia.domain.usecase.ClearGameSessionUseCase
-import com.dosparta.trivia.domain.usecase.FinishGameUseCase
-import com.dosparta.trivia.domain.usecase.LoadCategoriesUseCase
-import com.dosparta.trivia.domain.usecase.PersistGameSessionUseCase
-import com.dosparta.trivia.domain.usecase.ResolveAppStartupUseCase
-import com.dosparta.trivia.domain.usecase.StartGameSession
-import com.dosparta.trivia.domain.usecase.SubmitAnswerUseCase
+import com.dosparta.trivia.sdk.TriviaError
+import com.dosparta.trivia.sdk.TriviaSdk
+import com.dosparta.trivia.sdk.TriviaSdkException
+import com.dosparta.trivia.sdk.TriviaState
 import com.dosparta.trivia.ui.R
 import com.dosparta.trivia.ui.UiText
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
-import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TriviaViewModelTest {
-
-    // Make LiveData / StateFlow execute synchronously
-    @get:Rule
-    val instantExecutorRule = InstantTaskExecutorRule()
-
-    // Use the test dispatcher as Main
     private val dispatcher = StandardTestDispatcher()
-
-    private lateinit var startGame: StartGameSession
-    private lateinit var submitAnswer: SubmitAnswerUseCase
-    private lateinit var finishGame: FinishGameUseCase
-    private lateinit var loadCategoriesUseCase: LoadCategoriesUseCase
-    private lateinit var resolveStartupUseCase: ResolveAppStartupUseCase
-    private lateinit var persistGameSessionUseCase: PersistGameSessionUseCase
-    private lateinit var clearGameSessionUseCase: ClearGameSessionUseCase
-    private lateinit var gameSessionRepository: IGameSessionRepository
+    private val sdk = mockk<TriviaSdk>(relaxed = true)
+    private val state = MutableStateFlow<TriviaState>(TriviaState.Idle)
+    private val persistenceFailure = MutableStateFlow<TriviaSdkException?>(null)
+    private val translationUnavailable = MutableStateFlow(false)
     private lateinit var viewModel: TriviaViewModel
-    private val localizationRepository = FakeContentLocalizationRepository()
 
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
-        startGame = mockk()
-        submitAnswer = mockk()
-        finishGame = mockk()
-        loadCategoriesUseCase = mockk()
-        resolveStartupUseCase = mockk()
-        persistGameSessionUseCase = mockk()
-        clearGameSessionUseCase = mockk()
-        gameSessionRepository = mockk()
-        coEvery { gameSessionRepository.getActiveSession() } returns null
-        coEvery { gameSessionRepository.saveGameSession(any(), any(), any(), any(), any()) } returns Unit
-        coEvery { gameSessionRepository.clearActiveSession() } returns Unit
-        coEvery { resolveStartupUseCase.invoke() } returns com.dosparta.trivia.domain.game.StartupDecision.LoadCategories
-        coEvery { persistGameSessionUseCase.invoke(any(), any(), any(), any(), any()) } returns Unit
-        coEvery { clearGameSessionUseCase.invoke() } returns Unit
-        viewModel = TriviaViewModel(
-            startGame = startGame,
-            submitAnswer = submitAnswer,
-            finishGame = finishGame,
-            loadCategoriesUseCase = loadCategoriesUseCase,
-            resolveStartupUseCase = resolveStartupUseCase,
-            persistGameSessionUseCase = persistGameSessionUseCase,
-            clearGameSessionUseCase = clearGameSessionUseCase,
-            setContentLanguageUseCase = SetContentLanguageUseCase(localizationRepository),
-            observeTranslationAvailability = ObserveTranslationAvailabilityUseCase(localizationRepository)
-        )
+        mockkStatic(Log::class)
+        every { Log.e(any(), any(), any()) } returns 0
+        every { Log.w(any(), any(), any<Throwable>()) } returns 0
+        every { sdk.state } returns state
+        every { sdk.persistenceFailure } returns persistenceFailure
+        every { sdk.translationUnavailable } returns translationUnavailable
+        coEvery { sdk.restore() } returns false
+        coEvery { sdk.loadCategories() } returns emptyList()
+        viewModel = TriviaViewModel(sdk)
     }
 
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+        unmockkStatic(Log::class)
     }
 
     @Test
-    fun `loadQuestions emits session on success`() = runTest {
-        // given
-        val session = GameSession(questions = listOf(), startTimeMillis = 42L)
-        val config = TriviaConfig(amount = 10)
-        coEvery { startGame.invoke(config) } returns session
-
-        // when
-        viewModel.loadQuestions(config)
-        advanceUntilIdle()
-
-        // then
-        assertTrue(viewModel.uiState.value is TriviaUiState.Game)
-        assertEquals(session, (viewModel.uiState.value as TriviaUiState.Game).session)
+    fun `SDK states map to presentation without implementing game rules`() = runTest {
+        runCurrent()
+        state.value = TriviaState.Loading
+        runCurrent()
+        assertEquals(TriviaUiState.Loading, viewModel.uiState.value)
+        val session = GameSession(emptyList())
+        state.value = TriviaState.Playing(session)
+        runCurrent()
+        assertEquals(TriviaUiState.Game(session), viewModel.uiState.value)
+        val result = GameResult(10, 8, 100)
+        state.value = TriviaState.Finished(result)
+        runCurrent()
+        assertEquals(TriviaUiState.Result(result), viewModel.uiState.value)
     }
 
     @Test
-    fun `loadCategories emits available categories`() = runTest {
-        val categories = listOf(
-            TriviaCategory(9, "General Knowledge"),
-            TriviaCategory(17, "Science & Nature")
+    fun `typed SDK failures map to localized messages`() = runTest {
+        runCurrent()
+        val mappings = mapOf(
+            TriviaError.INVALID_CONFIGURATION to R.string.error_invalid_amount,
+            TriviaError.NO_QUESTIONS to R.string.error_no_questions_available,
+            TriviaError.NO_RESULTS to R.string.error_no_results_for_filters,
+            TriviaError.INVALID_QUERY to R.string.error_invalid_query_parameters,
+            TriviaError.RATE_LIMIT to R.string.error_rate_limit,
+            TriviaError.NETWORK to R.string.error_no_internet,
+            TriviaError.PROTOCOL to R.string.error_network_loading_failed,
+            TriviaError.PERSISTENCE to R.string.error_persistence,
+            TriviaError.UNKNOWN to R.string.error_unknown
         )
-        coEvery { loadCategoriesUseCase.invoke() } returns categories
-
-        viewModel.loadCategories()
-        advanceUntilIdle()
-
-        assertEquals(categories, viewModel.categories.value)
-        assertEquals(null, viewModel.categoriesError.value)
+        for ((error, resource) in mappings) {
+            state.value = TriviaState.Failed(TriviaSdkException(error))
+            runCurrent()
+            assertEquals(TriviaUiState.Error(UiText.StringResource(resource)), viewModel.uiState.value)
+        }
     }
 
     @Test
-    fun `content language change reloads categories once they were loaded`() = runTest {
+    fun `start forwards configuration and ignores duplicate pending loads`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        coEvery { sdk.start(any()) } coAnswers { gate.await() }
+        val config = TriviaConfig(20, 17, "easy")
+        viewModel.loadQuestions(config)
+        viewModel.loadQuestions(config)
+        runCurrent()
+        coVerify(exactly = 1) { sdk.start(config) }
+        viewModel.cancelPendingLoad()
+        advanceUntilIdle()
+        gate.complete(Unit)
+    }
+
+    @Test
+    fun `invalid amount is shown before calling SDK`() = runTest {
+        runCurrent()
+        viewModel.loadQuestions(1)
+        assertEquals(
+            TriviaUiState.Error(UiText.StringResource(R.string.error_invalid_amount)),
+            viewModel.uiState.value
+        )
+        coVerify(exactly = 0) { sdk.start(any()) }
+    }
+
+    @Test
+    fun `answers finish reset and lifecycle commands delegate to SDK`() = runTest {
+        viewModel.submit("Water")
+        viewModel.finishEarly()
+        viewModel.saveGameOnPause()
+        viewModel.onAppResumed()
+        viewModel.restart()
+        advanceUntilIdle()
+        coVerify(exactly = 1) { sdk.submit("Water") }
+        coVerify(exactly = 1) { sdk.finishEarly() }
+        coVerify(exactly = 1) { sdk.pause() }
+        coVerify(exactly = 1) { sdk.resume() }
+        coVerify(exactly = 1) { sdk.reset() }
+    }
+
+    @Test
+    fun `replay navigation is gated by SDK availability`() = runTest {
+        every { sdk.canReplay } returns false
+        assertFalse(viewModel.replayLastGame())
+        every { sdk.canReplay } returns true
+        assertTrue(viewModel.replayLastGame())
+        advanceUntilIdle()
+        coVerify(exactly = 1) { sdk.replay() }
+    }
+
+    @Test
+    fun `categories load and language changes refresh presentation`() = runTest {
         val english = listOf(TriviaCategory(9, "General Knowledge"))
         val german = listOf(TriviaCategory(9, "Allgemeinwissen"))
-        coEvery { loadCategoriesUseCase.invoke() } returns english
+        coEvery { sdk.loadCategories() } returns english
         viewModel.bootstrapApp()
         advanceUntilIdle()
-
-        coEvery { loadCategoriesUseCase.invoke() } returns german
+        assertEquals(english, viewModel.categories.value)
+        every { sdk.setContentLanguage(AppLanguage.GERMAN) } returns true
+        coEvery { sdk.loadCategories() } returns german
         viewModel.onContentLanguageChanged(AppLanguage.GERMAN)
         advanceUntilIdle()
-
-        assertEquals(AppLanguage.GERMAN, localizationRepository.contentLanguage.value)
         assertEquals(german, viewModel.categories.value)
-        coVerify(exactly = 2) { loadCategoriesUseCase.invoke() }
+        every { sdk.setContentLanguage(AppLanguage.GERMAN) } returns false
+        viewModel.onContentLanguageChanged(AppLanguage.GERMAN)
+        advanceUntilIdle()
+        coVerify(exactly = 2) { sdk.loadCategories() }
     }
 
     @Test
-    fun `unchanged content language does not reload categories`() = runTest {
-        coEvery { loadCategoriesUseCase.invoke() } returns listOf(TriviaCategory(9, "General Knowledge"))
-        viewModel.bootstrapApp()
-        advanceUntilIdle()
-
-        viewModel.onContentLanguageChanged(AppLanguage.ENGLISH)
-        advanceUntilIdle()
-
-        coVerify(exactly = 1) { loadCategoriesUseCase.invoke() }
-    }
-
-    @Test
-    fun `content language set before bootstrap only updates the language`() = runTest {
-        coEvery { loadCategoriesUseCase.invoke() } returns emptyList()
-
+    fun `language before bootstrap does not start category load`() = runTest {
+        every { sdk.setContentLanguage(AppLanguage.SPANISH) } returns true
         viewModel.onContentLanguageChanged(AppLanguage.SPANISH)
         advanceUntilIdle()
-
-        assertEquals(AppLanguage.SPANISH, localizationRepository.contentLanguage.value)
-        coVerify(exactly = 0) { loadCategoriesUseCase.invoke() }
+        coVerify(exactly = 0) { sdk.loadCategories() }
     }
 
     @Test
-    fun `translation notice mirrors the localization repository`() = runTest {
-        localizationRepository.setTranslationUnavailable(true)
-
+    fun `translation and persistence notices expose SDK signals`() = runTest {
+        runCurrent()
+        translationUnavailable.value = true
         assertTrue(viewModel.translationUnavailable.value)
+        persistenceFailure.value = TriviaSdkException(TriviaError.PERSISTENCE)
+        runCurrent()
+        assertEquals(UiText.StringResource(R.string.error_persistence), viewModel.persistenceError.value)
+        assertEquals(TriviaUiState.Idle, viewModel.uiState.value)
+        persistenceFailure.value = null
+        runCurrent()
+        assertEquals(null, viewModel.persistenceError.value)
     }
 
     @Test
-    fun `loadCategories emits a user friendly error when fetch fails`() = runTest {
-        coEvery { loadCategoriesUseCase.invoke() } throws RuntimeException("boom")
-
+    fun `category failures expose retryable localized messages`() = runTest {
+        coEvery { sdk.loadCategories() } throws TriviaSdkException(TriviaError.UNKNOWN)
         viewModel.loadCategories()
         advanceUntilIdle()
-
         assertEquals(UiText.StringResource(R.string.error_loading_categories), viewModel.categoriesError.value)
-    }
-
-    @Test
-    fun `loadQuestions emits error on failure`() = runTest {
-        // given
-        coEvery { startGame.invoke(any()) } throws RuntimeException("oops")
-
-        // when
-        viewModel.loadQuestions(10)
+        assertFalse(viewModel.isCategoriesLoading.value)
+        coEvery { sdk.loadCategories() } throws TriviaSdkException(TriviaError.NETWORK)
+        viewModel.loadCategories()
         advanceUntilIdle()
-
-        // then
-        advanceUntilIdle()
-        assertTrue(viewModel.uiState.value is TriviaUiState.Error)
-        assertEquals(UiText.StringResource(R.string.error_unknown), (viewModel.uiState.value as TriviaUiState.Error).message)
-    }
-
-    @Test
-    fun `submit emits GameResult when session ends`() = runTest {
-        // 1. Prepare a session of size 1 that’s already “done”
-        val finishedSession = GameSession(
-            questions = listOf(TriviaQuestion(
-                "General", "boolean", "easy",
-                "Is sky blue?", "True", listOf("True", "False"))),
-            currentIndex = 1,
-            correctCount = 1,
-            startTimeMillis = 0L
-        )
-        coEvery { startGame.invoke(any()) } returns finishedSession
-        coEvery { submitAnswer.invoke(any(), any()) } returns finishedSession
-
-        val expectedResult = GameResult(1, 1, 100L)
-        coEvery { finishGame.invoke(finishedSession) } returns expectedResult
-
-        viewModel.loadQuestions(TriviaConfig(amount = 10))
-        advanceUntilIdle()
-
-        viewModel.submit("True")
-        advanceUntilIdle()
-
-        advanceUntilIdle()
-        assertTrue(viewModel.uiState.value is TriviaUiState.Result)
-        assertEquals(expectedResult, (viewModel.uiState.value as TriviaUiState.Result).result)
-    }
-
-    @Test
-    fun `replayLastGame restarts the completed question set`() = runTest {
-        val question = TriviaQuestion(
-            "General", "boolean", "easy",
-            "Is sky blue?", "True", listOf("True", "False")
-        )
-        val initialSession = GameSession(
-            questions = listOf(question),
-            currentIndex = 0,
-            correctCount = 0,
-            startTimeMillis = 10L
-        )
-        val finishedSession = initialSession.copy(
-            currentIndex = 1,
-            correctCount = 1
-        )
-        coEvery { startGame.invoke(any()) } returns initialSession
-        coEvery { submitAnswer.invoke(any(), any()) } returns finishedSession
-        coEvery { finishGame.invoke(finishedSession) } returns GameResult(1, 1, 100L)
-
-        viewModel.loadQuestions(TriviaConfig(amount = 10))
-        advanceUntilIdle()
-        viewModel.submit("True")
-        advanceUntilIdle()
-
-        val replayed = viewModel.replayLastGame()
-        advanceUntilIdle()
-
-        assertTrue(replayed)
-        assertTrue(viewModel.uiState.value is TriviaUiState.Game)
-        val replayedSession = (viewModel.uiState.value as TriviaUiState.Game).session
-        assertEquals(listOf(question), replayedSession.questions)
-        assertEquals(0, replayedSession.currentIndex)
-        assertEquals(0, replayedSession.correctCount)
-    }
-
-    @Test
-    fun `finishEarly emits result counting unanswered questions as incorrect`() = runTest {
-        val questions = List(4) { index ->
-            TriviaQuestion("General", "boolean", "easy", "Question $index", "True", listOf("True", "False"))
-        }
-        val inProgress = GameSession(questions = questions, currentIndex = 2, correctCount = 1, startTimeMillis = 0L)
-        coEvery { startGame.invoke(any()) } returns inProgress
-        val expectedResult = GameResult(totalQuestions = 4, correctAnswers = 1, durationMillis = 100L)
-        coEvery { finishGame.invoke(inProgress) } returns expectedResult
-
-        viewModel.loadQuestions(TriviaConfig(amount = 10))
-        advanceUntilIdle()
-        viewModel.finishEarly()
-        advanceUntilIdle()
-
-        val state = viewModel.uiState.value
-        assertTrue(state is TriviaUiState.Result)
-        assertEquals(expectedResult, state.result)
-        assertEquals(3, state.result.incorrectAnswers)
-        coVerify(exactly = 1) { finishGame.invoke(inProgress) }
-        coVerify(exactly = 1) { clearGameSessionUseCase.invoke() }
-
-        assertTrue(viewModel.replayLastGame())
-        assertEquals(questions, (viewModel.uiState.value as TriviaUiState.Game).session.questions)
-    }
-
-    @Test
-    fun `finishEarly is a no-op when no game is in progress`() = runTest {
-        viewModel.finishEarly()
-        advanceUntilIdle()
-
-        assertEquals(TriviaUiState.Idle, viewModel.uiState.value)
-        coVerify(exactly = 0) { finishGame.invoke(any()) }
-        coVerify(exactly = 0) { clearGameSessionUseCase.invoke() }
-    }
-
-    @Test
-    fun `loadQuestions ignores duplicate requests while a load is already in progress`() = runTest {
-        val session = GameSession(
-            questions = listOf(
-                TriviaQuestion(
-                    category = "General",
-                    type = "boolean",
-                    difficulty = "easy",
-                    question = "Is Kotlin fun?",
-                    correctAnswer = "True",
-                    options = listOf("True", "False")
-                )
-            ),
-            startTimeMillis = 42L
-        )
-
-        val config = TriviaConfig(amount = 10)
-        coEvery { startGame.invoke(config) } coAnswers {
-            delay(200)
-            session
-        }
-
-        viewModel.loadQuestions(config)
-        viewModel.loadQuestions(config)
-        advanceUntilIdle()
-
-        coVerify(exactly = 1) { startGame.invoke(config) }
-        assertTrue(viewModel.uiState.value is TriviaUiState.Game)
+        assertEquals(UiText.StringResource(R.string.error_no_internet), viewModel.categoriesError.value)
     }
 }

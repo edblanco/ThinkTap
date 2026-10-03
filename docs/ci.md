@@ -14,11 +14,14 @@ independent tasks after a failure without hiding the failing exit status.
 
 Run these commands from the repository root using JDK 17 and the checked-in wrapper:
 
+Each job first publishes the independent SDK into `sdk/build/repository`. The app
+uses these versioned Maven artifacts, without composite source substitution.
+
 | Check name | Command | Coverage |
 |---|---|---|
-| `JVM tests` | `./gradlew test jacocoRootCoverageVerification --continue --stacktrace` | All configured Android local/Robolectric test tasks and `quality-detekt-rules:test`, plus a 70% business-logic line-coverage minimum |
+| `JVM tests` | `./sdk/gradlew -p sdk check publish`, then `./sdk/gradlew -p sdk/samples/jvm-consumer run`, then `./gradlew test` | Independent SDK checks, standalone artifact consumer, and app unit tests; 70% SDK core line-coverage minimum |
 | `Screenshot tests` | `./gradlew verifyRoborazziDebug --continue --stacktrace` | Strict golden verification in `core-ui` and `feature-trivia-ui` |
-| `Instrumentation tests (API 35)` | `./gradlew connectedDebugAndroidTest --continue --stacktrace` | All modules' debug instrumentation tests on the connected emulator |
+| `Instrumentation tests (API 35)` | `./sdk/gradlew -p sdk connectedDebugAndroidTest` and `./gradlew connectedDebugAndroidTest` | SDK and application debug instrumentation tests on the connected emulator |
 
 The instrumentation command requires a running emulator. CI creates a headless API 35
 Google APIs x86_64 Pixel 5 emulator with KVM acceleration and animations disabled. Use a
@@ -37,16 +40,19 @@ contributors before any tests run.
 
 ## Coverage requirement
 
-The `JVM tests` check fails when aggregate **line coverage is below 70%** in
-`trivia-domain`. Exactly 70% passes. This preserves the existing business-logic report
-scope: UI, other application modules, and generated classes are not counted. Coverage
-comes from the domain module's debug unit tests, not instrumentation or screenshot tests.
+The `JVM tests` check fails when **line coverage is below 70%** in
+`sdk/trivia-sdk-core`. Exactly 70% passes. This includes both existing game rules
+and session orchestration extracted from the ViewModel. UI, Android adapters, and
+generated Android classes are not counted. Coverage comes from Kotlin/JVM core
+unit tests, not instrumentation or screenshot tests.
 
-Run the gate locally with `./gradlew jacocoRootCoverageVerification`. It runs the
+Run the gate locally with `./sdk/gradlew -p sdk :trivia-sdk-core:jacocoTestCoverageVerification`. It runs the
 required tests and generates HTML and XML reports under
-`build/reports/jacoco/jacocoRootReport/` before checking the threshold. Missing execution
-data or compiled classes fail explicitly rather than silently skipping the gate.
-Run `./gradlew jacocoRootReport` to generate reports without enforcing the minimum.
+`sdk/trivia-sdk-core/build/reports/jacoco/test/` before checking the threshold.
+Missing execution data or compiled classes fail explicitly instead of silently
+skipping the coverage gate.
+Run `./sdk/gradlew -p sdk :trivia-sdk-core:jacocoTestReport` to generate reports without
+enforcing the minimum.
 
 ## Failure reports
 
@@ -87,7 +93,10 @@ are not configured; enabling one also requires adding `merge_group` workflow sup
 Run `actionlint .github/workflows/ci.yml` and inspect task coverage with:
 
 ```bash
-./gradlew test jacocoRootCoverageVerification verifyRoborazziDebug connectedDebugAndroidTest --dry-run
+./sdk/gradlew -p sdk check publish --dry-run
+./sdk/gradlew -p sdk publish
+./sdk/gradlew -p sdk/samples/jvm-consumer run
+./gradlew test verifyRoborazziDebug connectedDebugAndroidTest --dry-run
 ```
 
 A dry run confirms task selection, not passing tests. Local macOS runs also cannot

@@ -31,8 +31,11 @@ detekt = "1.23.8"
 work = "2.11.0"
 roborazzi = "1.75.0"
 mlkitTranslate = "17.0.3"
+triviaSdk = "0.1.0"
 
 [libraries]
+trivia-sdk-core = { group = "com.dosparta.trivia", name = "trivia-sdk-core", version.ref = "triviaSdk" }
+trivia-sdk-android = { group = "com.dosparta.trivia", name = "trivia-sdk-android", version.ref = "triviaSdk" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

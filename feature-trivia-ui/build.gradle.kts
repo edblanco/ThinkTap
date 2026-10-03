@@ -66,8 +66,7 @@ tasks.named("check") {
 
 dependencies {
     implementation(project(":core-ui"))
-    implementation(project(":trivia-domain"))
-    implementation(project(":data-trivia"))
+    implementation(libs.trivia.sdk.core)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

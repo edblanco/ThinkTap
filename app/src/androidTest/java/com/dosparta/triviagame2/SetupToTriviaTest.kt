@@ -2,8 +2,6 @@ package com.dosparta.triviagame2
 
 import com.dosparta.trivia.domain.localization.IContentLocalizationRepository
 import com.dosparta.trivia.domain.model.AppLanguage
-import com.dosparta.trivia.domain.usecase.ObserveTranslationAvailabilityUseCase
-import com.dosparta.trivia.domain.usecase.SetContentLanguageUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
@@ -12,24 +10,20 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.dosparta.trivia.domain.game.GameEngine
+import androidx.test.platform.app.InstrumentationRegistry
 import com.dosparta.trivia.domain.model.TriviaCategory
 import com.dosparta.trivia.domain.model.TriviaConfig
 import com.dosparta.trivia.domain.model.TriviaQuestion
 import com.dosparta.trivia.domain.repository.GameSessionState
 import com.dosparta.trivia.domain.repository.IGameSessionRepository
 import com.dosparta.trivia.domain.repository.ITriviaRepository
-import com.dosparta.trivia.domain.usecase.ClearGameSessionUseCase
-import com.dosparta.trivia.domain.usecase.FinishGameUseCase
-import com.dosparta.trivia.domain.usecase.LoadCategoriesUseCase
-import com.dosparta.trivia.domain.usecase.PersistGameSessionUseCase
-import com.dosparta.trivia.domain.usecase.ResolveAppStartupUseCase
-import com.dosparta.trivia.domain.usecase.StartGameSession
-import com.dosparta.trivia.domain.usecase.SubmitAnswerUseCase
+import com.dosparta.trivia.sdk.TriviaSdk
 import com.dosparta.trivia.ui.screens.SetupScreen
+import com.dosparta.trivia.ui.R
 import com.dosparta.trivia.ui.screens.TriviaScreen
 import com.dosparta.trivia.ui.viewmodel.TriviaViewModel
 import kotlinx.coroutines.flow.Flow
@@ -91,15 +85,7 @@ class SetupToTriviaTest {
             }
         }
         val viewModel = TriviaViewModel(
-            startGame = StartGameSession(fakeRepo),
-            submitAnswer = SubmitAnswerUseCase(GameEngine()),
-            finishGame = FinishGameUseCase(GameEngine()),
-            loadCategoriesUseCase = LoadCategoriesUseCase(fakeRepo),
-            resolveStartupUseCase = ResolveAppStartupUseCase(fakeSessionRepo),
-            persistGameSessionUseCase = PersistGameSessionUseCase(fakeSessionRepo),
-            clearGameSessionUseCase = ClearGameSessionUseCase(fakeSessionRepo),
-            setContentLanguageUseCase = SetContentLanguageUseCase(localizationRepository),
-            observeTranslationAvailability = ObserveTranslationAvailabilityUseCase(localizationRepository)
+            sdk = TriviaSdk(fakeRepo, fakeSessionRepo, localizationRepository)
         )
         val showTrivia = mutableStateOf(false)
 
@@ -131,11 +117,12 @@ class SetupToTriviaTest {
         composeRule.onNodeWithTag("amount_slider").performSemanticsAction(SemanticsActions.SetProgress) {
             it(20f)
         }
-        composeRule.onNodeWithTag("category_button").performClick()
+        composeRule.onNodeWithTag("category_button").performScrollTo().performClick()
         composeRule.onNodeWithText("Science").performClick()
-        composeRule.onNodeWithTag("difficulty_button").performClick()
-        composeRule.onNodeWithText("Easy").performClick()
-        composeRule.onNodeWithTag("start_game_button").performClick()
+        composeRule.onNodeWithTag("difficulty_button").performScrollTo().performClick()
+        val easyLabel = InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.difficulty_easy)
+        composeRule.onNodeWithText(easyLabel).performClick()
+        composeRule.onNodeWithTag("start_game_button").performScrollTo().performClick()
 
         composeRule.waitUntil(10_000L) {
             composeRule.onAllNodesWithTag("question_text").fetchSemanticsNodes().isNotEmpty()
