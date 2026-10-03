@@ -6,17 +6,17 @@ import com.dosparta.trivia.data.local.entity.GameSessionEntity
 import com.dosparta.trivia.domain.model.TriviaQuestion
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
+import io.mockk.MockKAnnotations
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.impl.annotations.MockK
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mock
-import org.mockito.MockitoAnnotations
-import org.mockito.kotlin.any
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -24,7 +24,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [Build.VERSION_CODES.N])
 class GameSessionRepositoryImplTest {
 
-    @Mock
+    @MockK
     private lateinit var dao: GameSessionDao
 
     private lateinit var repository: GameSessionRepositoryImpl
@@ -42,7 +42,7 @@ class GameSessionRepositoryImplTest {
 
     @Before
     fun setUp() {
-        MockitoAnnotations.openMocks(this)
+        MockKAnnotations.init(this, relaxUnitFun = true)
         repository = GameSessionRepositoryImpl(dao)
     }
 
@@ -60,7 +60,7 @@ class GameSessionRepositoryImplTest {
             selectedAnswers = emptyMap()
         )
 
-        verify(dao).insertOrReplaceSession(any<GameSessionEntity>())
+        coVerify { dao.insertOrReplaceSession(any<GameSessionEntity>()) }
     }
 
     @Test
@@ -77,7 +77,7 @@ class GameSessionRepositoryImplTest {
             selectedAnswers = emptyMap()
         )
 
-        verify(dao).insertOrReplaceSession(any())
+        coVerify { dao.insertOrReplaceSession(any()) }
     }
 
     @Test
@@ -90,7 +90,7 @@ class GameSessionRepositoryImplTest {
             startedAtMillis = System.currentTimeMillis()
         )
 
-        whenever(dao.getActiveSession()).thenReturn(flowOf(entity))
+        every { dao.getActiveSession() } returns flowOf(entity)
 
         repository.getActiveSessionFlow().collect { state ->
             assertNotNull(state)
@@ -100,7 +100,7 @@ class GameSessionRepositoryImplTest {
 
     @Test
     fun `getActiveSessionFlow returns null when no active session`() = runBlocking {
-        whenever(dao.getActiveSession()).thenReturn(flowOf(null))
+        every { dao.getActiveSession() } returns flowOf(null)
 
         repository.getActiveSessionFlow().collect { state ->
             assertNull(state)
@@ -119,7 +119,7 @@ class GameSessionRepositoryImplTest {
             correctCount = 0
         )
 
-        whenever(dao.getActiveSessionOnce()).thenReturn(entity)
+        coEvery { dao.getActiveSessionOnce() } returns entity
 
         val state = repository.getActiveSession()
 
@@ -131,7 +131,7 @@ class GameSessionRepositoryImplTest {
 
     @Test
     fun `getActiveSession returns null when dao returns null`() = runBlocking {
-        whenever(dao.getActiveSessionOnce()).thenReturn(null)
+        coEvery { dao.getActiveSessionOnce() } returns null
 
         val state = repository.getActiveSession()
 
@@ -142,7 +142,7 @@ class GameSessionRepositoryImplTest {
     fun `clearActiveSession calls dao clearActiveSession`() = runBlocking {
         repository.clearActiveSession()
 
-        verify(dao).clearActiveSession()
+        coVerify { dao.clearActiveSession() }
     }
 
     @Test
@@ -157,7 +157,7 @@ class GameSessionRepositoryImplTest {
             selectedAnswers = selectedAnswers
         )
 
-        verify(dao).insertOrReplaceSession(any())
+        coVerify { dao.insertOrReplaceSession(any()) }
     }
 
     @Test
@@ -173,7 +173,7 @@ class GameSessionRepositoryImplTest {
             correctCount = 1
         )
 
-        whenever(dao.getActiveSessionOnce()).thenReturn(entity)
+        coEvery { dao.getActiveSessionOnce() } returns entity
 
         val state = repository.getActiveSession()
 
@@ -195,7 +195,7 @@ class GameSessionRepositoryImplTest {
             correctCount = 0
         )
 
-        whenever(dao.getActiveSessionOnce()).thenReturn(entity)
+        coEvery { dao.getActiveSessionOnce() } returns entity
 
         val state = repository.getActiveSession()
 

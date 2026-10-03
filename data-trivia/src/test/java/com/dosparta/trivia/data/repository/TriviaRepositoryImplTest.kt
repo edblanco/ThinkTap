@@ -8,19 +8,16 @@ import com.dosparta.trivia.data.token.TriviaSessionTokenProvider
 import com.dosparta.trivia.domain.model.TriviaConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import io.mockk.MockKAnnotations
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.impl.annotations.MockK
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mock
-import org.mockito.MockitoAnnotations
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.isNull
-import org.mockito.kotlin.times
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -28,10 +25,10 @@ import org.robolectric.annotation.Config
 @Config(sdk = [Build.VERSION_CODES.N])
 class TriviaRepositoryImplTest {
 
-    @Mock
+    @MockK
     private lateinit var api: TriviaApi
 
-    @Mock
+    @MockK
     private lateinit var tokenProvider: TriviaSessionTokenProvider
 
     private lateinit var repository: TriviaRepositoryImpl
@@ -41,7 +38,7 @@ class TriviaRepositoryImplTest {
 
     @Before
     fun setUp() {
-        MockitoAnnotations.openMocks(this)
+        MockKAnnotations.init(this, relaxUnitFun = true)
         sampleDto = TriviaQuestionDto(
             type = "mul&amp;tiple",
             difficulty = "eas&lt;y",
@@ -64,9 +61,8 @@ class TriviaRepositoryImplTest {
 
     @Test
     fun `getQuestions decodes HTML entities and marks token used`() = runBlocking {
-        whenever(tokenProvider.getValidToken()).thenReturn("token-a")
-        whenever(api.fetchQuestions(eq(10), eq(null), eq(null), eq("token-a")))
-            .thenReturn(sampleResponse)
+        coEvery { tokenProvider.getValidToken() } returns "token-a"
+        coEvery { api.fetchQuestions(eq(10), null, null, eq("token-a")) } returns sampleResponse
 
         val domainList = repository.getQuestions(sampleConfig)
 
@@ -76,61 +72,59 @@ class TriviaRepositoryImplTest {
         assertEquals("eas<y", domain.difficulty)
         assertEquals("Math & Science", domain.category)
         assertEquals("What does <HTML> stand for?", domain.question)
-        verify(tokenProvider).markTokenUsed()
+        coVerify { tokenProvider.markTokenUsed() }
     }
 
     @Test
     fun `getQuestions passes selected config and token to api`() {
         runBlocking {
             val config = TriviaConfig(amount = 20, categoryId = 9, difficulty = "easy")
-            whenever(tokenProvider.getValidToken()).thenReturn("token-b")
-            whenever(api.fetchQuestions(20, 9, "easy", "token-b")).thenReturn(sampleResponse)
+            coEvery { tokenProvider.getValidToken() } returns "token-b"
+            coEvery { api.fetchQuestions(20, 9, "easy", "token-b") } returns sampleResponse
 
             repository.getQuestions(config)
 
-            verify(api).fetchQuestions(20, 9, "easy", "token-b")
+            coVerify { api.fetchQuestions(20, 9, "easy", "token-b") }
         }
     }
 
     @Test
     fun `getQuestions retries with fresh token when token not found`() {
         runBlocking {
-            whenever(tokenProvider.getValidToken()).thenReturn("token-old", "token-new")
-            whenever(api.fetchQuestions(eq(10), eq(null), eq(null), eq("token-old")))
-                .thenReturn(TriviaResponseDto(responseCode = 3, results = emptyList()))
-            whenever(api.fetchQuestions(eq(10), eq(null), eq(null), eq("token-new")))
-                .thenReturn(sampleResponse)
+            coEvery { tokenProvider.getValidToken() } returnsMany listOf("token-old", "token-new")
+            coEvery { api.fetchQuestions(eq(10), null, null, eq("token-old")) } returns
+                TriviaResponseDto(responseCode = 3, results = emptyList())
+            coEvery { api.fetchQuestions(eq(10), null, null, eq("token-new")) } returns sampleResponse
 
             repository.getQuestions(sampleConfig)
 
-            verify(tokenProvider).clearToken()
-            verify(api).fetchQuestions(10, null, null, "token-old")
-            verify(api).fetchQuestions(10, null, null, "token-new")
+            coVerify { tokenProvider.clearToken() }
+            coVerify { api.fetchQuestions(10, null, null, "token-old") }
+            coVerify { api.fetchQuestions(10, null, null, "token-new") }
         }
     }
 
     @Test
     fun `getQuestions resets token when token empty`() {
         runBlocking {
-            whenever(tokenProvider.getValidToken()).thenReturn("token-a")
-            whenever(tokenProvider.resetToken("token-a")).thenReturn("token-reset")
-            whenever(api.fetchQuestions(eq(10), eq(null), eq(null), eq("token-a")))
-                .thenReturn(TriviaResponseDto(responseCode = 4, results = emptyList()))
-            whenever(api.fetchQuestions(eq(10), eq(null), eq(null), eq("token-reset")))
-                .thenReturn(sampleResponse)
+            coEvery { tokenProvider.getValidToken() } returns "token-a"
+            coEvery { tokenProvider.resetToken("token-a") } returns "token-reset"
+            coEvery { api.fetchQuestions(eq(10), null, null, eq("token-a")) } returns
+                TriviaResponseDto(responseCode = 4, results = emptyList())
+            coEvery { api.fetchQuestions(eq(10), null, null, eq("token-reset")) } returns sampleResponse
 
             repository.getQuestions(sampleConfig)
 
-            verify(tokenProvider).resetToken("token-a")
-            verify(api).fetchQuestions(10, null, null, "token-reset")
+            coVerify { tokenProvider.resetToken("token-a") }
+            coVerify { api.fetchQuestions(10, null, null, "token-reset") }
         }
     }
 
     @Test
     fun `getQuestions throws helpful error for no results code`() = runBlocking {
-        whenever(tokenProvider.getValidToken()).thenReturn("token-a")
-        whenever(api.fetchQuestions(eq(10), isNull(), isNull(), eq("token-a")))
-            .thenReturn(TriviaResponseDto(responseCode = 1, results = emptyList()))
+        coEvery { tokenProvider.getValidToken() } returns "token-a"
+        coEvery { api.fetchQuestions(eq(10), isNull(), isNull(), eq("token-a")) } returns
+            TriviaResponseDto(responseCode = 1, results = emptyList())
 
         try {
             repository.getQuestions(sampleConfig)
@@ -142,9 +136,9 @@ class TriviaRepositoryImplTest {
 
     @Test
     fun `getQuestions throws helpful error for invalid parameter code`() = runBlocking {
-        whenever(tokenProvider.getValidToken()).thenReturn("token-a")
-        whenever(api.fetchQuestions(eq(10), isNull(), isNull(), eq("token-a")))
-            .thenReturn(TriviaResponseDto(responseCode = 2, results = emptyList()))
+        coEvery { tokenProvider.getValidToken() } returns "token-a"
+        coEvery { api.fetchQuestions(eq(10), isNull(), isNull(), eq("token-a")) } returns
+            TriviaResponseDto(responseCode = 2, results = emptyList())
 
         try {
             repository.getQuestions(sampleConfig)
@@ -156,9 +150,9 @@ class TriviaRepositoryImplTest {
 
     @Test
     fun `getQuestions throws helpful error for rate limit code`() = runBlocking {
-        whenever(tokenProvider.getValidToken()).thenReturn("token-a")
-        whenever(api.fetchQuestions(eq(10), isNull(), isNull(), eq("token-a")))
-            .thenReturn(TriviaResponseDto(responseCode = 5, results = emptyList()))
+        coEvery { tokenProvider.getValidToken() } returns "token-a"
+        coEvery { api.fetchQuestions(eq(10), isNull(), isNull(), eq("token-a")) } returns
+            TriviaResponseDto(responseCode = 5, results = emptyList())
 
         try {
             repository.getQuestions(sampleConfig)
@@ -170,9 +164,9 @@ class TriviaRepositoryImplTest {
 
     @Test
     fun `getQuestions propagates API exceptions`() = runBlocking {
-        whenever(tokenProvider.getValidToken()).thenReturn("token-a")
-        whenever(api.fetchQuestions(eq(10), isNull(), isNull(), eq("token-a")))
-            .thenThrow(RuntimeException("API error"))
+        coEvery { tokenProvider.getValidToken() } returns "token-a"
+        coEvery { api.fetchQuestions(eq(10), isNull(), isNull(), eq("token-a")) } throws
+            RuntimeException("API error")
 
         try {
             repository.getQuestions(sampleConfig)
@@ -184,12 +178,12 @@ class TriviaRepositoryImplTest {
 
     @Test
     fun `getQuestions calls token only once when successful`() = runBlocking {
-        whenever(tokenProvider.getValidToken()).thenReturn("token-a")
-        whenever(api.fetchQuestions(eq(10), isNull(), isNull(), eq("token-a"))).thenReturn(sampleResponse)
+        coEvery { tokenProvider.getValidToken() } returns "token-a"
+        coEvery { api.fetchQuestions(eq(10), isNull(), isNull(), eq("token-a")) } returns sampleResponse
 
         repository.getQuestions(sampleConfig)
 
-        verify(tokenProvider, times(1)).getValidToken()
-        verify(tokenProvider, times(1)).markTokenUsed()
+        coVerify(exactly = 1) { tokenProvider.getValidToken() }
+        coVerify(exactly = 1) { tokenProvider.markTokenUsed() }
     }
 }

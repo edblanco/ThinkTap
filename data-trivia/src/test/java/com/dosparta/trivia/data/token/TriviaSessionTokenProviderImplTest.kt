@@ -4,16 +4,16 @@ import android.os.Build
 import com.dosparta.trivia.data.remote.api.TriviaApi
 import com.dosparta.trivia.data.remote.dto.TriviaSessionTokenResponseDto
 import kotlinx.coroutines.runBlocking
+import io.mockk.MockKAnnotations
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.impl.annotations.MockK
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mock
-import org.mockito.MockitoAnnotations
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
@@ -22,7 +22,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [Build.VERSION_CODES.N])
 class TriviaSessionTokenProviderImplTest {
 
-    @Mock
+    @MockK
     private lateinit var api: TriviaApi
 
     private lateinit var store: SessionTokenStore
@@ -30,7 +30,7 @@ class TriviaSessionTokenProviderImplTest {
 
     @Before
     fun setUp() {
-        MockitoAnnotations.openMocks(this)
+        MockKAnnotations.init(this)
         val context = RuntimeEnvironment.getApplication().applicationContext
         store = SessionTokenStore(context)
         store.clear()
@@ -40,9 +40,8 @@ class TriviaSessionTokenProviderImplTest {
     @Test
     fun `getValidToken requests new token when none is stored`() {
         runBlocking {
-            whenever(api.requestSessionToken()).thenReturn(
+            coEvery { api.requestSessionToken() } returns
                 TriviaSessionTokenResponseDto(responseCode = 0, token = "fresh-token")
-            )
 
             val token = provider.getValidToken()
 
@@ -68,23 +67,21 @@ class TriviaSessionTokenProviderImplTest {
         runBlocking {
             val expired = System.currentTimeMillis() - (6 * 60 * 60 * 1000L) - 1L
             store.saveToken("old-token", expired)
-            whenever(api.requestSessionToken()).thenReturn(
+            coEvery { api.requestSessionToken() } returns
                 TriviaSessionTokenResponseDto(responseCode = 0, token = "new-token")
-            )
 
             val token = provider.getValidToken()
 
             assertEquals("new-token", token)
-            verify(api).requestSessionToken()
+            coVerify { api.requestSessionToken() }
         }
     }
 
     @Test
     fun `resetToken keeps existing token when API omits token field`() {
         runBlocking {
-            whenever(api.resetSessionToken(command = "reset", token = "token-a")).thenReturn(
+            coEvery { api.resetSessionToken(command = "reset", token = "token-a") } returns
                 TriviaSessionTokenResponseDto(responseCode = 0, token = null)
-            )
 
             val token = provider.resetToken("token-a")
 
@@ -96,9 +93,8 @@ class TriviaSessionTokenProviderImplTest {
     @Test
     fun `request token failure throws`() {
         runBlocking {
-            whenever(api.requestSessionToken()).thenReturn(
+            coEvery { api.requestSessionToken() } returns
                 TriviaSessionTokenResponseDto(responseCode = 5, token = null)
-            )
 
             try {
                 provider.getValidToken()

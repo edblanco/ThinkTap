@@ -9,13 +9,13 @@ import com.dosparta.trivia.domain.model.TriviaCategory
 import com.dosparta.trivia.domain.model.TriviaConfig
 import com.dosparta.trivia.domain.model.TriviaQuestion
 import kotlinx.coroutines.test.runTest
+import io.mockk.coEvery
+import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.whenever
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.IOException
@@ -35,7 +35,7 @@ class TranslatingTriviaRepositoryTest {
     private val categories = listOf(TriviaCategory(17, "Science"))
     private val config = TriviaConfig(amount = 10)
 
-    private val delegate: TriviaRepositoryImpl = mock()
+    private val delegate: TriviaRepositoryImpl = mockk()
     private val localization = ContentLocalizationRepositoryImpl()
 
     private fun repository(translator: ITextTranslator) =
@@ -53,7 +53,7 @@ class TranslatingTriviaRepositoryTest {
 
     @Test
     fun `translates questions into the content language`() = runTest {
-        whenever(delegate.getQuestions(config)).thenReturn(listOf(question))
+        coEvery { delegate.getQuestions(config) } returns listOf(question)
         localization.setContentLanguage(AppLanguage.GERMAN)
 
         val result = repository(prefixingTranslator).getQuestions(config).single()
@@ -65,7 +65,7 @@ class TranslatingTriviaRepositoryTest {
 
     @Test
     fun `falls back to english and flags the notice when translation fails`() = runTest {
-        whenever(delegate.getCategories()).thenReturn(categories)
+        coEvery { delegate.getCategories() } returns categories
         localization.setContentLanguage(AppLanguage.SPANISH)
 
         val result = repository(failingTranslator).getCategories()
@@ -76,7 +76,7 @@ class TranslatingTriviaRepositoryTest {
 
     @Test
     fun `english content clears a previous failure notice`() = runTest {
-        whenever(delegate.getCategories()).thenReturn(categories)
+        coEvery { delegate.getCategories() } returns categories
         localization.setTranslationUnavailable(true)
 
         val result = repository(failingTranslator).getCategories()
@@ -87,7 +87,7 @@ class TranslatingTriviaRepositoryTest {
 
     @Test
     fun `successful translation clears a previous failure notice`() = runTest {
-        whenever(delegate.getCategories()).thenReturn(categories)
+        coEvery { delegate.getCategories() } returns categories
         localization.setContentLanguage(AppLanguage.CHINESE_SIMPLIFIED)
         localization.setTranslationUnavailable(true)
 

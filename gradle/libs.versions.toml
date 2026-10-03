@@ -20,7 +20,6 @@ runtimeAndroid = "1.12.0"
 navigationComposeJvmstubs = "2.9.8"
 hiltNavigation = "1.4.0"
 material3Android = "1.4.0"
-mockito = "5.12.0"
 room = "2.7.2"
 coroutinesTest = "1.11.0"
 robolectric = "4.16.1"
@@ -68,8 +67,6 @@ androidx-navigation-compose-jvmstubs = { group = "androidx.navigation", name = "
 hilt-navigation = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigation"}
 androidx-material3-android = { group = "androidx.compose.material3", name = "material3-android", version.ref = "material3Android" }
 
-mockito-core = { group = "org.mockito", name = "mockito-core", version.ref = "mockito" }
-mockito-kotlin = { group = "org.mockito.kotlin", name = "mockito-kotlin", version = "5.4.0" }
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
@@ -79,7 +76,7 @@ robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "
 core-testing = { group = "androidx.arch.core", name = "core-testing", version.ref = "coreTesting" }
 # Turbine is useful for testing flows. Replaces (collect + runBlockingTest)
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbineVer" }
-# Mockk has better support for kotlin than mockito
+# MockK provides Kotlin-friendly test doubles.
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockkVer" }
 kotlin-test = { group = "org.jetbrains.kotlin", name = "kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit", version.ref = "kotlin" }

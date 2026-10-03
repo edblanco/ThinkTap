@@ -5,19 +5,15 @@ import com.dosparta.trivia.domain.game.GameResult
 import com.dosparta.trivia.domain.game.GameSession
 import com.dosparta.trivia.domain.model.TriviaQuestion
 import kotlinx.coroutines.runBlocking
+import io.mockk.MockKAnnotations
+import io.mockk.every
+import io.mockk.impl.annotations.MockK
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.mockito.Mock
-import org.mockito.junit.MockitoJUnitRunner
-import org.mockito.kotlin.any
-import org.mockito.kotlin.whenever
-
-@RunWith(MockitoJUnitRunner::class)
 class FinishGameUseCaseTest {
 
-    @Mock
+    @MockK
     private lateinit var engine: GameEngine
 
     private lateinit var finishUseCase: FinishGameUseCase
@@ -28,6 +24,7 @@ class FinishGameUseCaseTest {
 
     @Before
     fun setUp() {
+        MockKAnnotations.init(this)
         finishUseCase = FinishGameUseCase(engine)
 
         val sample = TriviaQuestion(
@@ -55,8 +52,7 @@ class FinishGameUseCaseTest {
             durationMillis = 2_000L
         )
 
-        whenever(engine.finish(any()))
-            .thenReturn(expectedResult)
+        every { engine.finish(any()) } returns expectedResult
     }
 
     @Test
@@ -73,8 +69,7 @@ class FinishGameUseCaseTest {
     @Test(expected = RuntimeException::class)
     fun `invoke propagates exception from engine`() {
         runBlocking {
-            whenever(engine.finish(any()))
-                .thenThrow(RuntimeException("Engine crashed"))
+            every { engine.finish(any()) } throws RuntimeException("Engine crashed")
 
             // Should throw
             finishUseCase(session)
