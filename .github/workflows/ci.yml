@@ -41,7 +41,7 @@ jobs:
         with:
           cache-read-only: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
       - name: Verify SDK independently and publish versioned artifacts
-        run: ./sdk/gradlew -p sdk check publish --continue --stacktrace
+        run: ./sdk/gradlew -p sdk checkJvm publishJvm --continue --stacktrace
       - name: Verify isolated JVM consumer against published SDK
         run: ./sdk/gradlew -p sdk/samples/jvm-consumer run --stacktrace
       - name: Run application JVM tests against published SDK artifacts
@@ -84,7 +84,7 @@ jobs:
         with:
           cache-read-only: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
       - name: Publish SDK artifacts for the application
-        run: ./sdk/gradlew -p sdk publish --stacktrace
+        run: ./sdk/gradlew -p sdk publishJvm --stacktrace
       - name: Verify all screenshot baselines
         run: ./gradlew verifyRoborazziDebug --continue --stacktrace
       - name: Upload screenshot reports and comparisons
@@ -125,7 +125,7 @@ jobs:
         with:
           cache-read-only: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
       - name: Publish SDK artifacts for the application
-        run: ./sdk/gradlew -p sdk publish --stacktrace
+        run: ./sdk/gradlew -p sdk publishJvm --stacktrace
       - name: Enable KVM
         run: |
           echo "CPU virtualization flags: $(grep -cE '(vmx|svm)' /proc/cpuinfo || true)"
@@ -163,5 +163,56 @@ jobs:
           path: |
             **/build/reports/androidTests/
             **/build/outputs/androidTest-results/
+          retention-days: 14
+          if-no-files-found: warn
+
+  ios-core:
+    name: iOS core
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - name: Check out code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - name: Set up Java
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - name: Set up Android SDK for SDK build configuration
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
+        with:
+          packages: ${{ env.ANDROID_PACKAGES }}
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+        with:
+          cache-read-only: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+      - name: Verify Apple Silicon toolchain
+        run: |
+          test "$(uname -m)" = arm64
+          xcodebuild -version
+          xcrun --sdk iphonesimulator --show-sdk-path
+          xcrun simctl list devices available
+      - name: Test shared core on iOS and assemble release XCFramework
+        run: >-
+          ./sdk/gradlew -p sdk
+          :trivia-sdk-core:iosSimulatorArm64Test
+          :trivia-sdk-core:assembleTriviaCoreReleaseXCFramework
+          :trivia-sdk-core:publishIosArm64PublicationToLocalRepository
+          :trivia-sdk-core:publishIosSimulatorArm64PublicationToLocalRepository
+          --continue --stacktrace
+      - name: Verify Swift API and XCFramework slices
+        run: bash sdk/scripts/check-swift.sh
+      - name: Upload iOS reports and XCFramework
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: ios-core-reports
+          path: |
+            sdk/trivia-sdk-core/build/reports/tests/
+            sdk/trivia-sdk-core/build/test-results/
+            sdk/trivia-sdk-core/build/XCFrameworks/release/
           retention-days: 14
           if-no-files-found: warn

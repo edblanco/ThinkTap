@@ -20,7 +20,7 @@ From the repository root:
 
 ```bash
 # Build and publish the independent SDK to sdk/build/repository
-./sdk/gradlew -p sdk publish
+./sdk/gradlew -p sdk publishJvm
 
 # Build the debug APK
 ./gradlew :app:assembleDebug
@@ -45,7 +45,7 @@ The SDK has no dependency on the application or its UI.
 | `feature-trivia-ui` | Trivia game and setup user interface |
 | `core-ui` | Shared Compose UI components and theme |
 | `quality-detekt-rules` | Custom Detekt rules for project code |
-| `sdk/trivia-sdk-core` | Pure Kotlin/JVM game rules, public API, and session orchestration |
+| `sdk/trivia-sdk-core` | Kotlin Multiplatform game rules, public API, and session orchestration for JVM and iOS ARM64 |
 | `sdk/trivia-sdk-android` | SDK initialization, OpenTDB, Room storage, and ML Kit content translation |
 | `sdk/trivia-sdk-network` | SDK-owned internal network infrastructure |
 | `sdk/quality-detekt-rules` | SDK-owned static analysis rules |
@@ -54,7 +54,7 @@ The SDK has no dependency on the application or its UI.
 
 ```bash
 # Independently test/analyze the SDK and enforce 70% core line coverage
-./sdk/gradlew -p sdk check
+./sdk/gradlew -p sdk checkJvm
 
 # Verify a standalone JVM consumer using published artifacts
 ./sdk/gradlew -p sdk/samples/jvm-consumer run
@@ -72,6 +72,10 @@ The SDK has no dependency on the application or its UI.
 ./sdk/gradlew -p sdk connectedDebugAndroidTest
 ./gradlew connectedDebugAndroidTest
 ```
+
+The SDK core also targets iOS devices and Apple Silicon simulators; production
+iOS adapters are deferred. Native tests and XCFramework assembly require a
+configured full Xcode on macOS. See [iOS core integration](sdk/README.md#ios-core).
 
 See the guides below for CI coverage requirements, screenshot testing, and localization details.
 

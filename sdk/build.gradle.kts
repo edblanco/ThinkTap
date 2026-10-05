@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.kotlin.jvm) apply false
+    alias(libs.plugins.kotlin.multiplatform) apply false
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.devtools.ksp) apply false
     alias(libs.plugins.detekt) apply false
@@ -7,7 +8,7 @@ plugins {
 
 allprojects {
     group = "com.dosparta.trivia"
-    version = "0.1.0"
+    version = "0.2.0"
 }
 
 subprojects {
@@ -31,4 +32,23 @@ subprojects {
 
 tasks.register("check") {
     dependsOn(subprojects.map { "${it.path}:check" })
+}
+
+tasks.register("checkJvm") {
+    group = "verification"
+    description = "Checks the SDK and Android adapters without requiring an Apple toolchain."
+    dependsOn(subprojects.map {
+        if (it.name == "trivia-sdk-core") "${it.path}:checkJvm" else "${it.path}:check"
+    })
+}
+
+tasks.register("publishJvm") {
+    group = "publishing"
+    description = "Publishes common metadata, JVM core, and Android adapters to the SDK repository."
+    dependsOn(
+        ":trivia-sdk-core:publishKotlinMultiplatformPublicationToLocalRepository",
+        ":trivia-sdk-core:publishJvmPublicationToLocalRepository",
+        ":trivia-sdk-android:publishReleasePublicationToSdkRepository",
+        ":trivia-sdk-network:publishReleasePublicationToSdkRepository"
+    )
 }
