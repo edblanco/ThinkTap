@@ -1,66 +1,86 @@
+import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
+import org.gradle.testing.jacoco.tasks.JacocoReport
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 
 plugins {
-    alias(libs.plugins.kotlin.jvm)
-    `java-library`
+    alias(libs.plugins.kotlin.multiplatform)
     `maven-publish`
     jacoco
 }
 
 kotlin {
-    compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
-    sourceSets {
-        main { kotlin.srcDir("src/main/java") }
-        test { kotlin.srcDir("src/test/java") }
+    jvm {
+        compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
     }
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
-    withSourcesJar()
-}
-
-dependencies {
-    implementation(libs.javax.inject)
-    api(libs.kotlinx.coroutines.core)
-    testImplementation(libs.junit)
-    testImplementation(libs.mockk)
-    testImplementation(libs.kotlinx.coroutines.test)
+    val framework = XCFramework("TriviaCore")
+    listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
+        target.binaries.framework {
+            baseName = "TriviaCore"
+            isStatic = true
+            export(libs.kotlinx.coroutines.core)
+            framework.add(this)
+        }
+    }
+    sourceSets {
+        commonMain.dependencies {
+            api(libs.kotlinx.coroutines.core)
+        }
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
+        }
+        jvmTest {
+            dependencies {
+                implementation(libs.kotlin.test.junit)
+                implementation(libs.junit)
+                implementation(libs.mockk)
+            }
+        }
+    }
 }
 
 jacoco {
     toolVersion = "0.8.14"
 }
 
-tasks.test {
+val jvmTests = tasks.named<Test>("jvmTest") {
     useJUnit()
 }
+val coreClasses = files(
+    layout.buildDirectory.dir("classes/kotlin/jvm/main")
+)
+val coverageData = layout.buildDirectory.file("jacoco/jvmTest.exec")
 
 val validateCoverageInputs = tasks.register("validateCoverageInputs") {
     group = "verification"
-    dependsOn(tasks.test)
+    dependsOn(jvmTests)
     doLast {
-        val executionData = layout.buildDirectory.file("jacoco/test.exec").get().asFile
+        val executionData = coverageData.get().asFile
         check(executionData.isFile && executionData.length() > 0L) {
             "Missing JaCoCo execution data: $executionData"
         }
-        check(tasks.jacocoTestReport.get().classDirectories.asFileTree.files.any { it.extension == "class" }) {
+        check(coreClasses.asFileTree.files.any { it.extension == "class" }) {
             "No SDK core classes found for coverage analysis."
         }
     }
 }
 
-tasks.jacocoTestReport {
+val coverageReport = tasks.register<JacocoReport>("jacocoTestReport") {
     dependsOn(validateCoverageInputs)
+    executionData(coverageData)
+    classDirectories.setFrom(coreClasses)
+    sourceDirectories.setFrom("src/commonMain/kotlin", "src/jvmMain/kotlin")
     reports {
         xml.required.set(true)
         html.required.set(true)
     }
 }
 
-tasks.jacocoTestCoverageVerification {
-    dependsOn(tasks.jacocoTestReport)
+val coverageVerification = tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
+    dependsOn(coverageReport)
+    executionData(coverageData)
+    classDirectories.setFrom(coreClasses)
     violationRules {
         rule {
             limit {
@@ -71,19 +91,30 @@ tasks.jacocoTestCoverageVerification {
     }
 }
 
-tasks.check {
-    dependsOn(tasks.jacocoTestCoverageVerification)
+tasks.named("check") {
+    dependsOn(coverageVerification)
+}
+
+tasks.register("checkJvm") {
+    group = "verification"
+    dependsOn(coverageVerification, "detekt")
+}
+
+tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+    setSource(files(
+        "src/commonMain/kotlin",
+        "src/jvmMain/kotlin",
+        "src/iosMain/kotlin",
+        "src/commonTest/kotlin",
+        "src/jvmTest/kotlin"
+    ))
 }
 
 publishing {
-    publications {
-        create<MavenPublication>("release") {
-            from(components["java"])
-            artifactId = "trivia-sdk-core"
-            pom {
-                name.set("ThinkTap Trivia SDK Core")
-                description.set("UI-independent trivia rules and session orchestration.")
-            }
+    publications.withType<MavenPublication>().configureEach {
+        pom {
+            name.set("ThinkTap Trivia SDK Core")
+            description.set("Multiplatform trivia rules and session orchestration for JVM and iOS.")
         }
     }
     repositories {

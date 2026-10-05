@@ -15,7 +15,7 @@ java {
 }
 
 dependencies {
-    implementation("com.dosparta.trivia:trivia-sdk-core:0.1.0")
+    implementation("com.dosparta.trivia:trivia-sdk-core:0.2.0")
 }
 
 application {
