@@ -1,6 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="jar" name="trivia-sdk-core-jvm-0.2.0">
-    <output-path>$PROJECT_DIR$/sdk/trivia-sdk-core/build/libs</output-path>
-    <root id="archive" name="trivia-sdk-core-jvm-0.2.0.jar" />
-  </artifact>
-</component>

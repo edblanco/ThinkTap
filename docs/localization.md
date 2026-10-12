@@ -46,6 +46,10 @@ For any other language it calls `TriviaContentTranslator`, which:
 `DualEngineTextTranslator` coordinates translation using two engines:
 1. **DeepL API (`DeepLTextTranslator`)**: Provides high-accuracy, natural-phrasing cloud translations.
    Translations are memoized in an in-memory cache to minimize network calls and conserve character quota.
+   Cache misses are serialized per language, so overlapping requests reuse completed translations
+   instead of billing duplicate requests. Different target languages can translate concurrently.
+   Requests contain at most 50 distinct uncached texts, respecting DeepL's per-request item limit.
+   Each batch is validated before caching; completed batches remain cached if a later batch fails.
    Requires an API key configured via `local.properties`, Gradle properties, or environment variable (`DEEPL_API_KEY`).
 2. **ML Kit On-Device Translation (`MlKitTextTranslator`)**: Free, keyless on-device translation.
    Downloads a model of about 30 MB per language the first time that language is used. The download is

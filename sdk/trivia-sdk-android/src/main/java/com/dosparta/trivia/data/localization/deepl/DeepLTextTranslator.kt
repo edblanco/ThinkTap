@@ -4,6 +4,8 @@ import android.util.Log
 import com.dosparta.trivia.data.BuildConfig
 import com.dosparta.trivia.domain.localization.ITextTranslator
 import com.dosparta.trivia.domain.model.AppLanguage
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,35 +24,42 @@ internal class DeepLTextTranslator @Inject constructor(
 ) : ITextTranslator {
 
     private val cache = ConcurrentHashMap<AppLanguage, MutableMap<String, String>>()
+    private val languageMutexes = ConcurrentHashMap<AppLanguage, Mutex>()
 
     override suspend fun translate(texts: List<String>, target: AppLanguage): List<String> {
         if (!target.requiresTranslation || texts.isEmpty()) return texts
         check(apiKey.isNotBlank()) { "DeepL API key is not configured." }
 
+        return languageMutexes.computeIfAbsent(target) { Mutex() }.withLock {
+            translateCached(texts, target)
+        }
+    }
+
+    private suspend fun translateCached(texts: List<String>, target: AppLanguage): List<String> {
         val languageCache = cache.getOrPut(target) { ConcurrentHashMap() }
         val uncached = texts.filter { it.isNotBlank() && !languageCache.containsKey(it) }.distinct()
 
-        if (uncached.isNotEmpty()) {
-            Log.d(TAG, "Translating ${uncached.size} text(s) to ${target.tag} with DeepL.")
+        for (batch in uncached.chunked(MAX_TEXTS_PER_REQUEST)) {
+            Log.d(TAG, "Translating ${batch.size} text(s) to ${target.tag} with DeepL.")
             val response = api.translate(
                 authorization = "DeepL-Auth-Key $apiKey",
                 request = DeepLTranslationRequest(
-                    text = uncached,
+                    text = batch,
                     targetLang = target.toDeepLLanguage()
                 )
             )
             val translations = response.translations
-            check(translations.size == uncached.size) {
-                "DeepL returned ${translations.size} translations for ${uncached.size} texts."
+            check(translations.size == batch.size) {
+                "DeepL returned ${translations.size} translations for ${batch.size} texts."
             }
-            uncached.zip(translations).forEach { (original, item) ->
+            batch.zip(translations).forEach { (original, item) ->
                 languageCache[original] = item.text
             }
-            Log.d(TAG, "DeepL translation completed for ${uncached.size} text(s).")
+            Log.d(TAG, "DeepL translation completed for ${batch.size} text(s).")
         }
 
         return texts.map { text ->
-            if (text.isBlank()) text else languageCache[text] ?: text
+            if (text.isBlank()) text else languageCache.getValue(text)
         }
     }
 
@@ -63,5 +72,6 @@ internal class DeepLTextTranslator @Inject constructor(
 
     private companion object {
         const val TAG = "DeepLTextTranslator"
+        const val MAX_TEXTS_PER_REQUEST = 50
     }
 }
