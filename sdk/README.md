@@ -97,7 +97,7 @@ Import `com.dosparta.trivia.sdk.android.AndroidTriviaSdk`. Only the application
 context is retained. Hilt is not required; the ThinkTap app uses its own Hilt
 provider to create a ViewModel-scoped controller.
 
-Networking, Room, token storage, and ML Kit clients are application/process-owned
+Networking, Room, token storage, and translation clients (DeepL and ML Kit) are application/process-owned
 and cached. Localization is shared between Android controllers. There is one
 persisted active-game slot per application, so use one active controller at a time.
 The SDK owns no coroutine scope or background jobs and requires no controller
@@ -179,7 +179,7 @@ only published artifacts and fake adapters, without Android or Hilt.
 ## iOS core
 
 This release makes gameplay portable, **not a turnkey iOS SDK**. Android's
-Retrofit/OkHttp networking, Room/Gson storage, SharedPreferences tokens, and ML Kit
+Retrofit/OkHttp networking, Room/Gson storage, SharedPreferences tokens, and DeepL / ML Kit
 translation remain Android-only. Production iOS data adapters, token storage,
 translation, and ergonomic Swift async/await/state-observation wrappers are deferred.
 There is no Compose Multiplatform UI, CocoaPods setup, or remote Swift package.

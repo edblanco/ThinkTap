@@ -1,3 +1,4 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -10,11 +11,39 @@ android {
     namespace = "com.dosparta.trivia.data"
     compileSdk = 37
 
+    buildFeatures {
+        buildConfig = true
+    }
+
+    val localProps = Properties().apply {
+        val candidates = listOf(
+            rootProject.file("local.properties"),
+            rootProject.file("../local.properties")
+        )
+        val file = candidates.firstOrNull { it.exists() }
+        if (file != null) {
+            file.inputStream().use { load(it) }
+        }
+    }
+    val deeplApiKey = providers.gradleProperty("DEEPL_API_KEY").orNull
+        ?: localProps.getProperty("DEEPL_API_KEY")
+        ?: localProps.getProperty("deepl.api.key")
+        ?: System.getenv("DEEPL_API_KEY")
+        ?: ""
+    val deeplBaseUrl = providers.gradleProperty("DEEPL_BASE_URL").orNull
+        ?: localProps.getProperty("DEEPL_BASE_URL")
+        ?: localProps.getProperty("deepl.base.url")
+        ?: System.getenv("DEEPL_BASE_URL")
+        ?: if (deeplApiKey.endsWith(":fx")) "https://api-free.deepl.com/v2/" else "https://api.deepl.com/v2/"
+
     defaultConfig {
         minSdk = 24
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
+
+        buildConfigField("String", "DEEPL_API_KEY", "\"$deeplApiKey\"")
+        buildConfigField("String", "DEEPL_BASE_URL", "\"$deeplBaseUrl\"")
     }
 
     buildTypes {
@@ -49,6 +78,7 @@ dependencies {
 
     implementation(libs.squareup.moshi)
     implementation(libs.squareup.retrofit)
+    implementation(libs.squareup.retrofit.converter.moshi)
     implementation(libs.squareup.retrofit.converter.gson)
     implementation(libs.javax.inject)
     implementation(libs.kotlinx.coroutines.core)

@@ -6,7 +6,7 @@ Two kinds of text need translating:
 | Text | How it is localized |
 |---|---|
 | UI strings | Android string resources (`values-de`, `values-es`, `values-zh-rCN`) in `app` and `feature-trivia-ui` |
-| Trivia content from OpenTDB (questions, answers, categories) | Translated on the device at runtime with [ML Kit Translation](https://developers.google.com/ml-kit/language/translation) |
+| Trivia content from OpenTDB (questions, answers, categories) | Translated at runtime via dual engines: high-quality cloud translation with [DeepL API](https://www.deepl.com/docs-api) with seamless automatic fallback to on-device [ML Kit Translation](https://developers.google.com/ml-kit/language/translation) |
 
 ## Choosing the language
 
@@ -43,13 +43,44 @@ For any other language it calls `TriviaContentTranslator`, which:
 - leaves boolean `True`/`False` answers and the `difficulty` value in English. The UI shows them
   using `answer_true`/`answer_false` and the `difficulty_*` strings.
 
-`MlKitTextTranslator` downloads a model of about 30 MB per language the first time that language
-is used. The download is allowed on any network and times out after 60 seconds. Translations are
-cached in memory for the life of the process.
+`DualEngineTextTranslator` coordinates translation using two engines:
+1. **DeepL API (`DeepLTextTranslator`)**: Provides high-accuracy, natural-phrasing cloud translations.
+   Translations are memoized in an in-memory cache to minimize network calls and conserve character quota.
+   Requires an API key configured via `local.properties`, Gradle properties, or environment variable (`DEEPL_API_KEY`).
+2. **ML Kit On-Device Translation (`MlKitTextTranslator`)**: Free, keyless on-device translation.
+   Downloads a model of about 30 MB per language the first time that language is used. The download is
+   allowed on any network and times out after 60 seconds.
+
+If DeepL is unconfigured (blank key), rate-limited, offline, or returns an error, the system
+automatically and silently falls back to on-device ML Kit translation.
+
+### Configuring DeepL
+
+To enable DeepL translation:
+1. Obtain an API key from [DeepL](https://www.deepl.com/pro-api).
+2. Add your key to `local.properties`:
+   ```properties
+   DEEPL_API_KEY=your_deepl_api_key
+   ```
+   Or set the environment variable:
+   ```bash
+   export DEEPL_API_KEY=your_deepl_api_key
+   ```
+   Free API keys (ending in `:fx`) automatically use the free endpoint (`https://api-free.deepl.com/v2/`),
+   while Pro keys use `https://api.deepl.com/v2/`. An optional `DEEPL_BASE_URL` property can be set to override this.
+
+### Verifying DeepL in Logcat
+
+Republish the SDK with `./sdk/gradlew -p sdk publishJvm`, then rebuild and run the app.
+Filter Logcat by `AndroidTriviaSdk` to see the DeepL host and whether a key is configured
+at SDK initialization. The key itself is never included in this log.
+Select a non-English language and filter by `DeepLTextTranslator` for translation start
+and completion messages. A start message alone does not confirm success.
+`DualEngineTranslator` logs a warning if DeepL fails and ML Kit takes over.
 
 ### When translation fails
 
-If the model can't be downloaded or a translation fails, the repository returns the original
+If both DeepL and ML Kit are unavailable or fail, the repository returns the original
 English content and sets `translationUnavailable`. The Setup and Trivia screens then show a
 banner with the `translation_unavailable_notice` string.
 
@@ -60,8 +91,8 @@ language it started in, even if the app language has changed since.
 
 ## Adding a language
 
-1. Add an entry to `AppLanguage` in `sdk/trivia-sdk-core`. Add its ML Kit code in
-   `MlKitTextTranslator` in `sdk/trivia-sdk-android` and its display name string in the
+1. Add an entry to `AppLanguage` in `sdk/trivia-sdk-core`. Add its language code in
+   `DeepLTextTranslator` and `MlKitTextTranslator` in `sdk/trivia-sdk-android`, and its display name string in the
    app's `LocalizedContent.kt`.
 2. Add a `values-<qualifier>/strings.xml` to `app` and `feature-trivia-ui` with every string that
    can be translated, including `content_language_tag`.

@@ -4,6 +4,21 @@
   <component name="GradleSettings">
     <option name="linkedExternalProjectsSettings">
       <GradleProjectSettings>
+        <compositeConfiguration>
+          <compositeBuild compositeDefinitionSource="SCRIPT">
+            <builds>
+              <build path="$PROJECT_DIR$/sdk" name="ThinkTap Trivia SDK">
+                <projects>
+                  <project path="$PROJECT_DIR$/sdk" />
+                  <project path="$PROJECT_DIR$/sdk/quality-detekt-rules" />
+                  <project path="$PROJECT_DIR$/sdk/trivia-sdk-android" />
+                  <project path="$PROJECT_DIR$/sdk/trivia-sdk-core" />
+                  <project path="$PROJECT_DIR$/sdk/trivia-sdk-network" />
+                </projects>
+              </build>
+            </builds>
+          </compositeBuild>
+        </compositeConfiguration>
         <option name="testRunner" value="CHOOSE_PER_TEST" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
         <option name="gradleJvm" value="#GRADLE_LOCAL_JAVA_HOME" />
@@ -14,6 +29,11 @@
             <option value="$PROJECT_DIR$/core-ui" />
             <option value="$PROJECT_DIR$/feature-trivia-ui" />
             <option value="$PROJECT_DIR$/quality-detekt-rules" />
+            <option value="$PROJECT_DIR$/sdk" />
+            <option value="$PROJECT_DIR$/sdk/quality-detekt-rules" />
+            <option value="$PROJECT_DIR$/sdk/trivia-sdk-android" />
+            <option value="$PROJECT_DIR$/sdk/trivia-sdk-core" />
+            <option value="$PROJECT_DIR$/sdk/trivia-sdk-network" />
           </set>
         </option>
       </GradleProjectSettings>
