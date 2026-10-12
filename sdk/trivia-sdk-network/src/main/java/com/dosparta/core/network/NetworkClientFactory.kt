@@ -10,8 +10,10 @@ import java.util.concurrent.TimeUnit
 
 /** Wiring for the internal network artifact; not part of the Android SDK API. */
 object NetworkClientFactory {
-    fun create(): Retrofit = provideRetrofit(
-        BuildConfig.BASE_URL,
+    fun create(): Retrofit = create(BuildConfig.BASE_URL)
+
+    fun create(baseUrl: String): Retrofit = provideRetrofit(
+        baseUrl,
         provideMoshi(),
         provideOkHttpClient(LoggingInterceptor())
     )

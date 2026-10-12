@@ -1,12 +1,17 @@
 package com.dosparta.trivia.sdk.android
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Room
 import com.dosparta.core.network.NetworkClientFactory
+import com.dosparta.trivia.data.BuildConfig
 import com.dosparta.trivia.data.local.database.TriviaDatabase
 import com.dosparta.trivia.data.localization.ContentLocalizationRepositoryImpl
+import com.dosparta.trivia.data.localization.DualEngineTextTranslator
 import com.dosparta.trivia.data.localization.MlKitTextTranslator
 import com.dosparta.trivia.data.localization.TriviaContentTranslator
+import com.dosparta.trivia.data.localization.deepl.DeepLApi
+import com.dosparta.trivia.data.localization.deepl.DeepLTextTranslator
 import com.dosparta.trivia.data.remote.api.TriviaApi
 import com.dosparta.trivia.data.remote.persistenceCall
 import com.dosparta.trivia.data.repository.GameSessionRepositoryImpl
@@ -47,6 +52,14 @@ object AndroidTriviaSdk {
     }
 
     private class Resources(context: Context) {
+        init {
+            Log.d(
+                "AndroidTriviaSdk",
+                "DeepL host=${java.net.URI(BuildConfig.DEEPL_BASE_URL).host}; " +
+                    "API key configured=${BuildConfig.DEEPL_API_KEY.isNotBlank()}."
+            )
+        }
+
         private val api = NetworkClientFactory.create().create(TriviaApi::class.java)
         private val database = persistenceCall {
             Room.databaseBuilder(context, TriviaDatabase::class.java, "trivia_database").build()
@@ -56,7 +69,13 @@ object AndroidTriviaSdk {
             persistenceCall { SessionTokenStore(context) }
         )
         val localization = ContentLocalizationRepositoryImpl()
-        private val translator = MlKitTextTranslator()
+        private val deepLApi = NetworkClientFactory.create(BuildConfig.DEEPL_BASE_URL).create(DeepLApi::class.java)
+        private val deepLTranslator = DeepLTextTranslator(deepLApi, BuildConfig.DEEPL_API_KEY)
+        private val mlKitTranslator = MlKitTextTranslator()
+        private val translator = DualEngineTextTranslator(
+            primary = deepLTranslator,
+            fallback = mlKitTranslator
+        )
         val repository = TranslatingTriviaRepository(
             TriviaRepositoryImpl(api, tokens, Dispatchers.IO),
             TriviaContentTranslator(translator),
