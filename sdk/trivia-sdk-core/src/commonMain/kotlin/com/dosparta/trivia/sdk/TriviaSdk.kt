@@ -40,6 +40,7 @@ class TriviaSdk(
     private val mutablePersistenceFailure = MutableStateFlow<TriviaSdkException?>(null)
     val persistenceFailure: StateFlow<TriviaSdkException?> = mutablePersistenceFailure.asStateFlow()
     val translationUnavailable: StateFlow<Boolean> = localization.translationUnavailable
+    val contentLanguage: StateFlow<AppLanguage> = localization.contentLanguage
     private val mutableReplayQuestions = MutableStateFlow<List<TriviaQuestion>>(emptyList())
     private var replayQuestions: List<TriviaQuestion>
         get() = mutableReplayQuestions.value
@@ -51,8 +52,9 @@ class TriviaSdk(
 
     fun setContentLanguage(language: AppLanguage): Boolean {
         if (localization.contentLanguage.value == language) return false
+        val previous = localization.contentLanguage.value
         localization.setContentLanguage(language)
-        return true
+        return localization.contentLanguage.value != previous
     }
 
     @Throws(TriviaSdkException::class, CancellationException::class)

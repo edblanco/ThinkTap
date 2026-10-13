@@ -14,7 +14,13 @@ import com.dosparta.trivia.domain.game.GameSession
 import com.dosparta.trivia.domain.model.AppLanguage
 import com.dosparta.trivia.domain.model.TriviaCategory
 import com.dosparta.trivia.domain.model.TriviaQuestion
+import com.dosparta.trivia.sdk.TriviaSdk
+import com.dosparta.trivia.sdk.TriviaState
 import com.dosparta.trivia.ui.currentContentLanguage
+import com.dosparta.trivia.ui.viewmodel.TriviaViewModel
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -73,6 +79,52 @@ class LocalizationScreenTests {
         setSetupContent()
 
         composeTestRule.onNodeWithTag("translation_notice").assertDoesNotExist()
+    }
+
+    @Test
+    fun `language picker is displayed when showLanguagePicker is true`() {
+        setSetupContent(showLanguagePicker = true)
+
+        composeTestRule.onNodeWithTag("language_button").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `language picker is hidden when showLanguagePicker is false`() {
+        setSetupContent(showLanguagePicker = false)
+
+        composeTestRule.onNodeWithTag("language_button").assertDoesNotExist()
+    }
+
+    @Test
+    fun `trivia screen idle fallback shows language picker when showLanguagePicker is true`() {
+        val viewModel = TriviaViewModel(fakeSdk())
+        composeTestRule.setContent {
+            TriviaGame2Theme {
+                TriviaScreen(
+                    viewModel = viewModel,
+                    showLanguagePicker = true,
+                    onResult = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("language_button").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `trivia screen idle fallback hides language picker when showLanguagePicker is false`() {
+        val viewModel = TriviaViewModel(fakeSdk())
+        composeTestRule.setContent {
+            TriviaGame2Theme {
+                TriviaScreen(
+                    viewModel = viewModel,
+                    showLanguagePicker = false,
+                    onResult = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("language_button").assertDoesNotExist()
     }
 
     @Test
@@ -143,10 +195,19 @@ class LocalizationScreenTests {
         }
     }
 
+    private fun fakeSdk(): TriviaSdk {
+        return mockk<TriviaSdk>(relaxed = true) {
+            every { translationUnavailable } returns MutableStateFlow(false)
+            every { state } returns MutableStateFlow(TriviaState.Idle)
+            every { persistenceFailure } returns MutableStateFlow(null)
+        }
+    }
+
     private fun setSetupContent(
         selectedLanguage: AppLanguage? = null,
         onLanguageSelected: (AppLanguage?) -> Unit = {},
-        translationUnavailable: Boolean = false
+        translationUnavailable: Boolean = false,
+        showLanguagePicker: Boolean = true
     ) {
         composeTestRule.setContent {
             TriviaGame2Theme {
@@ -162,7 +223,8 @@ class LocalizationScreenTests {
                     onReminderTimeChange = { _, _ -> },
                     selectedLanguage = selectedLanguage,
                     onLanguageSelected = onLanguageSelected,
-                    translationUnavailable = translationUnavailable
+                    translationUnavailable = translationUnavailable,
+                    showLanguagePicker = showLanguagePicker
                 )
             }
         }

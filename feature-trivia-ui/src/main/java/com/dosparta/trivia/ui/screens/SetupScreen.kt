@@ -65,7 +65,8 @@ fun SetupScreen(
     onReminderTimeChange: (Int, Int) -> Unit,
     selectedLanguage: AppLanguage? = null,
     onLanguageSelected: (AppLanguage?) -> Unit = {},
-    translationUnavailable: Boolean = false
+    translationUnavailable: Boolean = false,
+    showLanguagePicker: Boolean = true
 ) {
     if (categoriesError != null) {
         ErrorScreen(message = categoriesError, onRetry = onRetryLoadCategories)
@@ -124,11 +125,13 @@ fun SetupScreen(
                 )
             }
 
-            EnterAnimated(modifier = Modifier.fillMaxWidth(), index = 4) {
-                LanguageField(
-                    selectedLanguage = selectedLanguage,
-                    onLanguageSelected = onLanguageSelected
-                )
+            if (showLanguagePicker) {
+                EnterAnimated(modifier = Modifier.fillMaxWidth(), index = 4) {
+                    LanguageField(
+                        selectedLanguage = selectedLanguage,
+                        onLanguageSelected = onLanguageSelected
+                    )
+                }
             }
 
             EnterAnimated(modifier = Modifier.fillMaxWidth(), index = 5) {

@@ -21,6 +21,21 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    flavorDimensions += "tier"
+
+    productFlavors {
+        create("free") {
+            dimension = "tier"
+            buildConfigField("boolean", "SUPPORTS_EXTRA_LANGUAGES", "false")
+            buildConfigField("boolean", "TRANSLATION_FRAMEWORKS_ENABLED", "false")
+        }
+        create("pro") {
+            dimension = "tier"
+            buildConfigField("boolean", "SUPPORTS_EXTRA_LANGUAGES", "true")
+            buildConfigField("boolean", "TRANSLATION_FRAMEWORKS_ENABLED", "true")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -36,13 +51,21 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     androidResources {
         // Publishes the supported languages to Android 13+ per-app language settings.
         generateLocaleConfig = true
-        // Keep library resources (AppCompat, Material, ...) to the languages the app supports.
-        localeFilters += listOf("en", "de", "es", "zh-rCN")
     }
+}
+
+// Anchor task so CI running `./gradlew connectedDebugAndroidTest` tests all debug variants.
+tasks.register("connectedDebugAndroidTest") {
+    description = "Anchor task running connected Android tests across debug flavor variants"
+    group = "verification"
+    dependsOn(tasks.matching {
+        it.name.startsWith("connected") && it.name.endsWith("DebugAndroidTest") && it.name != "connectedDebugAndroidTest"
+    })
 }
 
 kotlin {
@@ -55,7 +78,10 @@ dependencies {
     implementation(project(":core-ui"))
     implementation(project(":feature-trivia-ui"))
 
-    implementation(libs.trivia.sdk.android)
+    "freeImplementation"(libs.trivia.sdk.android) {
+        exclude(group = "com.google.mlkit", module = "translate")
+    }
+    "proImplementation"(libs.trivia.sdk.android)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -82,4 +108,13 @@ dependencies {
     kspAndroidTest(libs.hilt.android.compiler)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+androidComponents {
+    onVariants(selector().withFlavor("tier" to "free")) { variant ->
+        variant.androidResources.localeFilters.set(setOf("en"))
+    }
+    onVariants(selector().withFlavor("tier" to "pro")) { variant ->
+        variant.androidResources.localeFilters.set(setOf("en", "de", "es", "zh-rCN"))
+    }
 }

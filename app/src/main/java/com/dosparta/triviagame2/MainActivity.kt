@@ -53,7 +53,11 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         reminderSettings = reminderManager.getSettings()
-        languageOverride = languageManager.currentOverride()
+        if (BuildConfig.SUPPORTS_EXTRA_LANGUAGES) {
+            languageOverride = languageManager.currentOverride()
+        } else if (languageManager.currentOverride() != null) {
+            languageManager.applyOverride(null)
+        }
         reminderManager.rescheduleFromPreferences()
 
         lifecycle.addObserver(object : DefaultLifecycleObserver {
@@ -86,9 +90,10 @@ class MainActivity : AppCompatActivity() {
                     onReminderTimeChange = { hour, minute ->
                         reminderSettings = reminderManager.setTime(hour, minute)
                     },
+                    showLanguagePicker = BuildConfig.SUPPORTS_EXTRA_LANGUAGES,
                     selectedLanguage = languageOverride,
                     onLanguageSelected = { language ->
-                        if (language != languageOverride) {
+                        if (BuildConfig.SUPPORTS_EXTRA_LANGUAGES && language != languageOverride) {
                             languageOverride = language
                             languageManager.applyOverride(language)
                         }
