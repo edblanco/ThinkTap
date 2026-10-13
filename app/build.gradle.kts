@@ -26,13 +26,11 @@ android {
     productFlavors {
         create("free") {
             dimension = "tier"
-            resConfigs("en")
             buildConfigField("boolean", "SUPPORTS_EXTRA_LANGUAGES", "false")
             buildConfigField("boolean", "TRANSLATION_FRAMEWORKS_ENABLED", "false")
         }
         create("pro") {
             dimension = "tier"
-            resConfigs("en", "de", "es", "zh-rCN")
             buildConfigField("boolean", "SUPPORTS_EXTRA_LANGUAGES", "true")
             buildConfigField("boolean", "TRANSLATION_FRAMEWORKS_ENABLED", "true")
         }
@@ -110,4 +108,13 @@ dependencies {
     kspAndroidTest(libs.hilt.android.compiler)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+androidComponents {
+    onVariants(selector().withFlavor("tier" to "free")) { variant ->
+        variant.androidResources.localeFilters.set(setOf("en"))
+    }
+    onVariants(selector().withFlavor("tier" to "pro")) { variant ->
+        variant.androidResources.localeFilters.set(setOf("en", "de", "es", "zh-rCN"))
+    }
 }

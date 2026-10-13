@@ -1,7 +1,7 @@
 # Localization
 
 ThinkTap ships in two product flavors:
-- **`free`**: Bundles only the default **English** language. The consumer excludes the `com.google.mlkit:translate` dependency, wires the English-only SDK entry point (`AndroidTriviaSdk.createEnglishOnly`) without initializing DeepL or ML Kit adapters, omits the language selector from the UI, and strips non-English resources from the packaged APK.
+- **`free`**: Bundles only the default **English** language. The consumer excludes the `com.google.mlkit:translate` dependency, wires the English-only SDK entry point (`AndroidTriviaSdk.createEnglishOnly`) without initializing DeepL or ML Kit adapters, omits the language selector from the UI, and configures `localeFilters = setOf("en")` to strip non-English packaged resources and ensure Android's per-app language settings only advertises English.
 - **`pro`**: Ships in **English** (default), **German**, **Spanish**, and **Simplified Chinese**, complete with full dual-engine runtime translation and in-app language switching.
 
 Two kinds of text need translating in the `pro` flavor:
@@ -13,7 +13,7 @@ Two kinds of text need translating in the `pro` flavor:
 
 ## Choosing the language
 
-- In the **`free`** flavor, the app is strictly in English. The language picker is omitted from the Setup screen, and `resConfigs("en")` strips non-English resources from the package.
+- In the **`free`** flavor, the app is strictly in English. The language picker is omitted from the Setup screen, and flavor `localeFilters` limits packaged resources to English and ensures the auto-generated `localeConfig` publishes only English to system per-app language settings.
 - In the **`pro`** flavor:
   - By default the app uses the system language. Android's resource matching picks the first
     supported language in the user's system list. If none is supported, the app uses English.
@@ -22,12 +22,12 @@ Two kinds of text need translating in the `pro` flavor:
     简体中文) that overrides the system language. It uses the AndroidX per-app language API
     (`AppCompatDelegate.setApplicationLocales`) through `AppLanguageManager` in `app`:
     - Android 13+ stores the choice and lists it under the system's per-app language settings.
-      `generateLocaleConfig` in `app/build.gradle.kts` publishes the supported languages, and
+      `generateLocaleConfig` in `app/build.gradle.kts` publishes the supported languages from `localeFilters`, and
       `res/resources.properties` declares English as the default language.
     - Android 12 and lower store the choice through AppCompat's `autoStoreLocales` service, which is
       declared in the manifest.
   - `MainActivity` extends `AppCompatActivity`, so changing the language recreates the activity.
-  - Flavor `resConfigs` limits packaged resources to the languages each flavor supports.
+  - Flavor `localeFilters` (configured via `androidComponents.onVariants`) limits packaged resources and generated locale configs to the languages each flavor supports.
 
 ## Content translation
 
@@ -104,6 +104,6 @@ language it started in, even if the app language has changed since.
    app's `LocalizedContent.kt`.
 2. Add a `values-<qualifier>/strings.xml` to `app/src/pro/res` and `feature-trivia-ui/src/main/res`
    with every string that can be translated, including `content_language_tag`.
-3. Add the qualifier to `resConfigs` under the `pro` product flavor in `app/build.gradle.kts`.
+3. Add the qualifier to `localeFilters` under the `pro` flavor in `app/build.gradle.kts`.
 4. Run `./sdk/gradlew -p sdk check publish`, then `./gradlew lintDebug` to catch missing
    UI translations (`MissingTranslation`).
