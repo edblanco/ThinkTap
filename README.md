@@ -2,7 +2,8 @@
 
 ThinkTap is an Android trivia game built with Kotlin and Jetpack Compose. It retrieves trivia
 content from OpenTDB and comes in two product flavors:
-- **`free`**: Lightweight English-only flavor with translation frameworks excluded.
+- **`free`**: Lightweight English-only flavor that excludes the ML Kit translation dependency,
+  uses the English-only SDK path without initializing translation adapters, and strips non-English resources.
 - **`pro`**: Full-featured flavor supporting English, German, Spanish, and Simplified Chinese,
   with runtime dual-engine content translation (DeepL API and ML Kit) and in-app language switching.
 
@@ -24,14 +25,14 @@ From the repository root:
 # Build and publish the independent SDK to sdk/build/repository
 ./sdk/gradlew -p sdk publishJvm
 
-# Build the debug APK
-./gradlew :app:assembleDebug
+# Build a debug APK (examples default to the 'free' flavor; use 'pro' for pro tier)
+./gradlew :app:assembleFreeDebug   # or :app:assembleProDebug
 
-# Install on a connected device or emulator
-./gradlew :app:installDebug
+# Install on a connected device or emulator (defaults to 'free')
+./gradlew :app:installFreeDebug    # or :app:installProDebug
 ```
 
-For local SDK source development, use `./gradlew -PuseLocalTriviaSdk=true :app:assembleDebug`.
+For local SDK source development, use `./gradlew -PuseLocalTriviaSdk=true :app:assembleFreeDebug`.
 The normal build uses versioned Maven artifacts, not project dependencies. See
 [SDK integration](sdk/README.md) for publication, API, and lifecycle details.
 

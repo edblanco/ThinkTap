@@ -235,6 +235,22 @@ class TriviaSdkTest {
     }
 
     @Test
+    fun `setContentLanguage returns false when localization repository rejects the language`() {
+        val restrictedSdk = TriviaSdk(
+            repository = repository,
+            sessions = sessions,
+            localization = object : IContentLocalizationRepository {
+                override val contentLanguage = MutableStateFlow(AppLanguage.ENGLISH)
+                override val translationUnavailable = MutableStateFlow(false)
+                override fun setContentLanguage(language: AppLanguage) = Unit
+                override fun setTranslationUnavailable(unavailable: Boolean) = Unit
+            }
+        )
+        assertFalse(restrictedSdk.setContentLanguage(AppLanguage.GERMAN))
+        assertEquals(AppLanguage.ENGLISH, restrictedSdk.contentLanguage.value)
+    }
+
+    @Test
     fun `canceled load restores prior state without persisting`() = runTest {
         val gate = CompletableDeferred<Unit>()
         repository.beforeQuestions = { gate.await() }

@@ -1,7 +1,7 @@
 # Localization
 
 ThinkTap ships in two product flavors:
-- **`free`**: Bundles only the default **English** language. The ML Kit runtime dependency is excluded, the English-only SDK wiring does not initialize DeepL or ML Kit, and the language selector is hidden.
+- **`free`**: Bundles only the default **English** language. The consumer excludes the `com.google.mlkit:translate` dependency, wires the English-only SDK entry point (`AndroidTriviaSdk.createEnglishOnly`) without initializing DeepL or ML Kit adapters, omits the language selector from the UI, and strips non-English resources from the packaged APK.
 - **`pro`**: Ships in **English** (default), **German**, **Spanish**, and **Simplified Chinese**, complete with full dual-engine runtime translation and in-app language switching.
 
 Two kinds of text need translating in the `pro` flavor:

@@ -19,6 +19,7 @@ import com.dosparta.trivia.data.repository.TranslatingTriviaRepository
 import com.dosparta.trivia.data.repository.TriviaRepositoryImpl
 import com.dosparta.trivia.data.token.SessionTokenStore
 import com.dosparta.trivia.data.token.TriviaSessionTokenProviderImpl
+import com.dosparta.trivia.domain.model.AppLanguage
 import com.dosparta.trivia.sdk.TriviaError
 import com.dosparta.trivia.sdk.TriviaSdk
 import com.dosparta.trivia.sdk.TriviaSdkException
@@ -79,7 +80,7 @@ object AndroidTriviaSdk {
             api,
             persistenceCall { SessionTokenStore(context) }
         )
-        val localization = ContentLocalizationRepositoryImpl()
+        val localization = ContentLocalizationRepositoryImpl(setOf(AppLanguage.ENGLISH))
         val repository = TriviaRepositoryImpl(api, tokens, Dispatchers.IO)
         val sessions = GameSessionRepositoryImpl(
             persistenceCall { database.gameSessionDao() },

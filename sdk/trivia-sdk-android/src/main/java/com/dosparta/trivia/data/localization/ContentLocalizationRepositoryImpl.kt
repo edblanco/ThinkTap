@@ -13,7 +13,13 @@ import javax.inject.Singleton
  * active app locale, so the value is always in sync with the language the UI is rendered in.
  */
 @Singleton
-internal class ContentLocalizationRepositoryImpl @Inject constructor() : IContentLocalizationRepository {
+internal class ContentLocalizationRepositoryImpl(
+    private val supportedLanguages: Set<AppLanguage> = AppLanguage.entries.toSet()
+) : IContentLocalizationRepository {
+
+    @Inject
+    constructor() : this(AppLanguage.entries.toSet())
+
     private val _contentLanguage = MutableStateFlow(AppLanguage.DEFAULT)
     override val contentLanguage: StateFlow<AppLanguage> = _contentLanguage.asStateFlow()
 
@@ -21,7 +27,9 @@ internal class ContentLocalizationRepositoryImpl @Inject constructor() : IConten
     override val translationUnavailable: StateFlow<Boolean> = _translationUnavailable.asStateFlow()
 
     override fun setContentLanguage(language: AppLanguage) {
-        _contentLanguage.value = language
+        if (language in supportedLanguages) {
+            _contentLanguage.value = language
+        }
     }
 
     override fun setTranslationUnavailable(unavailable: Boolean) {
