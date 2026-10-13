@@ -1,7 +1,7 @@
 # Localization
 
 ThinkTap ships in two product flavors:
-- **`free`**: Bundles only the default **English** language. Translation frameworks (on-device ML Kit and cloud DeepL API) are excluded from the binary and runtime dependencies, and the language selector is hidden.
+- **`free`**: Bundles only the default **English** language. The ML Kit runtime dependency is excluded, the English-only SDK wiring does not initialize DeepL or ML Kit, and the language selector is hidden.
 - **`pro`**: Ships in **English** (default), **German**, **Spanish**, and **Simplified Chinese**, complete with full dual-engine runtime translation and in-app language switching.
 
 Two kinds of text need translating in the `pro` flavor:
