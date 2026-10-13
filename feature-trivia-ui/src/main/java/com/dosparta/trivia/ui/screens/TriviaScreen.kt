@@ -61,6 +61,7 @@ import com.dosparta.core.ui.theme.LocalReducedMotion
 import com.dosparta.core.ui.theme.quizColors
 import com.dosparta.trivia.domain.game.GameResult
 import com.dosparta.trivia.domain.game.GameSession
+import com.dosparta.trivia.domain.model.AppLanguage
 import com.dosparta.trivia.domain.model.TriviaQuestion
 import com.dosparta.trivia.ui.R
 import com.dosparta.trivia.ui.UiText
@@ -88,6 +89,9 @@ private val NextButtonHeight = 56.dp
 @Composable
 fun TriviaScreen(
     viewModel: TriviaViewModel = hiltViewModel(),
+    selectedLanguage: AppLanguage? = null,
+    onLanguageSelected: (AppLanguage?) -> Unit = {},
+    showLanguagePicker: Boolean = true,
     onResult: (GameResult) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -139,7 +143,10 @@ fun TriviaScreen(
             onRetryLoadCategories = { viewModel.loadCategories() },
             onReminderEnabledChange = {},
             onReminderTimeChange = { _, _ -> },
-            translationUnavailable = translationUnavailable
+            selectedLanguage = selectedLanguage,
+            onLanguageSelected = onLanguageSelected,
+            translationUnavailable = translationUnavailable,
+            showLanguagePicker = showLanguagePicker
         )
     }
 }

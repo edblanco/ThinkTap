@@ -144,6 +144,9 @@ fun TriviaNavHost(
             composable(ROUTE_TRIVIA) {
                 TriviaScreen(
                     viewModel = viewModel,
+                    selectedLanguage = selectedLanguage,
+                    onLanguageSelected = onLanguageSelected,
+                    showLanguagePicker = showLanguagePicker,
                     onResult = { result ->
                         navController.navigate(
                             "result/${result.totalQuestions}/${result.correctAnswers}/${result.durationMillis}"
