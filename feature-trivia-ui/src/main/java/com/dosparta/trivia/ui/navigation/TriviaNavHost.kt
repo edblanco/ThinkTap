@@ -52,7 +52,8 @@ fun TriviaNavHost(
     onReminderEnabledChange: (Boolean) -> Unit = {},
     onReminderTimeChange: (Int, Int) -> Unit = { _, _ -> },
     selectedLanguage: AppLanguage? = null,
-    onLanguageSelected: (AppLanguage?) -> Unit = {}
+    onLanguageSelected: (AppLanguage?) -> Unit = {},
+    showLanguagePicker: Boolean = true
 ) {
     val navController = rememberNavController()
     val viewModel: TriviaViewModel = hiltViewModel()
@@ -135,7 +136,8 @@ fun TriviaNavHost(
                     onReminderTimeChange = onReminderTimeChange,
                     selectedLanguage = selectedLanguage,
                     onLanguageSelected = onLanguageSelected,
-                    translationUnavailable = translationUnavailable
+                    translationUnavailable = translationUnavailable,
+                    showLanguagePicker = showLanguagePicker
                 )
             }
 

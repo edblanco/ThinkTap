@@ -54,4 +54,33 @@ class AndroidTriviaSdkTest {
         assertTrue(second.setContentLanguage(AppLanguage.ENGLISH))
         assertFalse(first.setContentLanguage(AppLanguage.ENGLISH))
     }
+
+    @Test
+    fun `createEnglishOnly missing application context is an invalid configuration`() {
+        val callerContext = mockk<Context>()
+        every { callerContext.applicationContext } returns null
+
+        val error = assertThrows(TriviaSdkException::class.java) {
+            AndroidTriviaSdk.createEnglishOnly(callerContext)
+        }
+        assertEquals(TriviaError.INVALID_CONFIGURATION, error.error)
+    }
+
+    @Test
+    fun `createEnglishOnly uses application context and returns independent controllers`() {
+        val callerContext = mockk<Context>()
+        every { callerContext.applicationContext } returns RuntimeEnvironment.getApplication()
+
+        val first = AndroidTriviaSdk.createEnglishOnly(callerContext)
+        val second = AndroidTriviaSdk.createEnglishOnly(callerContext)
+
+        assertNotSame(first, second)
+        assertNotSame(first.state, second.state)
+        assertEquals(TriviaState.Idle, first.state.value)
+        assertEquals(TriviaState.Idle, second.state.value)
+        assertSame(first.translationUnavailable, second.translationUnavailable)
+        first.setContentLanguage(AppLanguage.ENGLISH)
+        assertTrue(first.setContentLanguage(AppLanguage.GERMAN))
+        assertFalse(second.setContentLanguage(AppLanguage.GERMAN))
+    }
 }

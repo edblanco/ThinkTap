@@ -27,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 /** Android wiring that requires neither Hilt nor an application-specific dependency graph. */
 object AndroidTriviaSdk {
     private var resources: Resources? = null
+    private var englishOnlyResources: EnglishOnlyResources? = null
 
     /**
      * Returns a fresh game controller backed by application-scoped adapters.
@@ -48,6 +49,41 @@ object AndroidTriviaSdk {
             repository = shared.repository,
             sessions = shared.sessions,
             localization = shared.localization
+        )
+    }
+
+    /**
+     * Returns a game controller configured strictly for English only, without initializing
+     * translation frameworks (such as DeepL or ML Kit).
+     */
+    @JvmStatic
+    fun createEnglishOnly(context: Context): TriviaSdk {
+        val applicationContext = context.applicationContext
+            ?: throw TriviaSdkException(TriviaError.INVALID_CONFIGURATION)
+        val shared = synchronized(this) {
+            englishOnlyResources ?: EnglishOnlyResources(applicationContext).also { englishOnlyResources = it }
+        }
+        return TriviaSdk(
+            repository = shared.repository,
+            sessions = shared.sessions,
+            localization = shared.localization
+        )
+    }
+
+    private class EnglishOnlyResources(context: Context) {
+        private val api = NetworkClientFactory.create().create(TriviaApi::class.java)
+        private val database = persistenceCall {
+            Room.databaseBuilder(context, TriviaDatabase::class.java, "trivia_database").build()
+        }
+        private val tokens = TriviaSessionTokenProviderImpl(
+            api,
+            persistenceCall { SessionTokenStore(context) }
+        )
+        val localization = ContentLocalizationRepositoryImpl()
+        val repository = TriviaRepositoryImpl(api, tokens, Dispatchers.IO)
+        val sessions = GameSessionRepositoryImpl(
+            persistenceCall { database.gameSessionDao() },
+            Dispatchers.IO
         )
     }
 

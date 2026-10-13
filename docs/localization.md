@@ -1,29 +1,33 @@
 # Localization
 
-ThinkTap ships in **English** (default), **German**, **Spanish**, and **Simplified Chinese**.
-Two kinds of text need translating:
+ThinkTap ships in two product flavors:
+- **`free`**: Bundles only the default **English** language. Translation frameworks (on-device ML Kit and cloud DeepL API) are excluded from the binary and runtime dependencies, and the language selector is hidden.
+- **`pro`**: Ships in **English** (default), **German**, **Spanish**, and **Simplified Chinese**, complete with full dual-engine runtime translation and in-app language switching.
+
+Two kinds of text need translating in the `pro` flavor:
 
 | Text | How it is localized |
 |---|---|
-| UI strings | Android string resources (`values-de`, `values-es`, `values-zh-rCN`) in `app` and `feature-trivia-ui` |
+| UI strings | Android string resources (`values-de`, `values-es`, `values-zh-rCN`) in `app/src/pro/res` and `feature-trivia-ui` |
 | Trivia content from OpenTDB (questions, answers, categories) | Translated at runtime via dual engines: high-quality cloud translation with [DeepL API](https://www.deepl.com/docs-api) with seamless automatic fallback to on-device [ML Kit Translation](https://developers.google.com/ml-kit/language/translation) |
 
 ## Choosing the language
 
-- By default the app uses the system language. Android's resource matching picks the first
-  supported language in the user's system list. If none is supported, the app uses English.
-  Traditional Chinese (`zh-TW`, `zh-HK`, `zh-Hant`) is not supported and falls back the same way.
-- The Setup screen has a **Language** picker ("System default", English, Deutsch, Español,
-  简体中文) that overrides the system language. It uses the AndroidX per-app language API
-  (`AppCompatDelegate.setApplicationLocales`) through `AppLanguageManager` in `app`:
-  - Android 13+ stores the choice and lists it under the system's per-app language settings.
-    `generateLocaleConfig` in `app/build.gradle.kts` publishes the supported languages, and
-    `res/resources.properties` declares English as the default language.
-  - Android 12 and lower store the choice through AppCompat's `autoStoreLocales` service, which is
-    declared in the manifest.
-- `MainActivity` extends `AppCompatActivity`, so changing the language recreates the activity.
-- `localeFilters` limits library resources such as AppCompat and Material to the supported
-  languages.
+- In the **`free`** flavor, the app is strictly in English. The language picker is omitted from the Setup screen, and `resConfigs("en")` strips non-English resources from the package.
+- In the **`pro`** flavor:
+  - By default the app uses the system language. Android's resource matching picks the first
+    supported language in the user's system list. If none is supported, the app uses English.
+    Traditional Chinese (`zh-TW`, `zh-HK`, `zh-Hant`) is not supported and falls back the same way.
+  - The Setup screen has a **Language** picker ("System default", English, Deutsch, Español,
+    简体中文) that overrides the system language. It uses the AndroidX per-app language API
+    (`AppCompatDelegate.setApplicationLocales`) through `AppLanguageManager` in `app`:
+    - Android 13+ stores the choice and lists it under the system's per-app language settings.
+      `generateLocaleConfig` in `app/build.gradle.kts` publishes the supported languages, and
+      `res/resources.properties` declares English as the default language.
+    - Android 12 and lower store the choice through AppCompat's `autoStoreLocales` service, which is
+      declared in the manifest.
+  - `MainActivity` extends `AppCompatActivity`, so changing the language recreates the activity.
+  - Flavor `resConfigs` limits packaged resources to the languages each flavor supports.
 
 ## Content translation
 
@@ -98,8 +102,8 @@ language it started in, even if the app language has changed since.
 1. Add an entry to `AppLanguage` in `sdk/trivia-sdk-core`. Add its language code in
    `DeepLTextTranslator` and `MlKitTextTranslator` in `sdk/trivia-sdk-android`, and its display name string in the
    app's `LocalizedContent.kt`.
-2. Add a `values-<qualifier>/strings.xml` to `app` and `feature-trivia-ui` with every string that
-   can be translated, including `content_language_tag`.
-3. Add the qualifier to `localeFilters` in `app/build.gradle.kts`.
+2. Add a `values-<qualifier>/strings.xml` to `app/src/pro/res` and `feature-trivia-ui/src/main/res`
+   with every string that can be translated, including `content_language_tag`.
+3. Add the qualifier to `resConfigs` under the `pro` product flavor in `app/build.gradle.kts`.
 4. Run `./sdk/gradlew -p sdk check publish`, then `./gradlew lintDebug` to catch missing
    UI translations (`MissingTranslation`).

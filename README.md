@@ -1,8 +1,10 @@
 # ThinkTap
 
 ThinkTap is an Android trivia game built with Kotlin and Jetpack Compose. It retrieves trivia
-content from OpenTDB and supports English, German, Spanish, and Simplified Chinese, including
-on-device translation of trivia content.
+content from OpenTDB and comes in two product flavors:
+- **`free`**: Lightweight English-only flavor with translation frameworks excluded.
+- **`pro`**: Full-featured flavor supporting English, German, Spanish, and Simplified Chinese,
+  with runtime dual-engine content translation (DeepL API and ML Kit) and in-app language switching.
 
 ## Requirements
 

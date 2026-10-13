@@ -76,6 +76,20 @@ class LocalizationScreenTests {
     }
 
     @Test
+    fun `language picker is displayed when showLanguagePicker is true`() {
+        setSetupContent(showLanguagePicker = true)
+
+        composeTestRule.onNodeWithTag("language_button").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `language picker is hidden when showLanguagePicker is false`() {
+        setSetupContent(showLanguagePicker = false)
+
+        composeTestRule.onNodeWithTag("language_button").assertDoesNotExist()
+    }
+
+    @Test
     @Config(qualifiers = "de")
     fun `german ui localizes setup labels and resolves german content language`() {
         var language: AppLanguage? = null
@@ -146,7 +160,8 @@ class LocalizationScreenTests {
     private fun setSetupContent(
         selectedLanguage: AppLanguage? = null,
         onLanguageSelected: (AppLanguage?) -> Unit = {},
-        translationUnavailable: Boolean = false
+        translationUnavailable: Boolean = false,
+        showLanguagePicker: Boolean = true
     ) {
         composeTestRule.setContent {
             TriviaGame2Theme {
@@ -162,7 +177,8 @@ class LocalizationScreenTests {
                     onReminderTimeChange = { _, _ -> },
                     selectedLanguage = selectedLanguage,
                     onLanguageSelected = onLanguageSelected,
-                    translationUnavailable = translationUnavailable
+                    translationUnavailable = translationUnavailable,
+                    showLanguagePicker = showLanguagePicker
                 )
             }
         }
