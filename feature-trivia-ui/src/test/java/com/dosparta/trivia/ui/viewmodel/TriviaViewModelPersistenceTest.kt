@@ -15,12 +15,15 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
@@ -100,5 +103,67 @@ class TriviaViewModelPersistenceTest {
         viewModel.retryBootstrap()
         advanceUntilIdle()
         assertEquals(StartupUiState.NavigateToTrivia, viewModel.startupState.value)
+    }
+
+    @Test
+    fun `authentication suspension saves without clearing and blocks lifecycle game commands`() = runTest {
+        coEvery { sdk.pause() } returns Unit
+        viewModel.suspendForAuthentication()
+        viewModel.bootstrapApp()
+        viewModel.saveGameOnPause()
+        viewModel.onAppResumed()
+        viewModel.submit("answer")
+        viewModel.restart()
+        advanceUntilIdle()
+        coVerify(exactly = 1) { sdk.pause() }
+        coVerify(exactly = 0) { sdk.restore() }
+        coVerify(exactly = 0) { sdk.resume() }
+        coVerify(exactly = 0) { sdk.submit(any()) }
+        coVerify(exactly = 0) { sdk.reset() }
+    }
+
+    @Test
+    fun `next authenticated entry restores the preserved game`() = runTest {
+        coEvery { sdk.pause() } returns Unit
+        coEvery { sdk.restore() } returns true
+        viewModel.bootstrapApp()
+        advanceUntilIdle()
+        viewModel.suspendForAuthentication()
+        viewModel.enableAfterAuthentication()
+        viewModel.bootstrapApp()
+        advanceUntilIdle()
+        assertEquals(StartupUiState.NavigateToTrivia, viewModel.startupState.value)
+        coVerify(exactly = 2) { sdk.restore() }
+        coVerify(exactly = 0) { sdk.reset() }
+    }
+
+    @Test
+    fun `authentication suspension exposes save failures`() = runTest {
+        val failure = MutableStateFlow<TriviaSdkException?>(null)
+        every { sdk.persistenceFailure } returns failure
+        coEvery { sdk.pause() } answers {
+            failure.value = TriviaSdkException(TriviaError.PERSISTENCE)
+        }
+        assertEquals(
+            UiText.StringResource(R.string.error_persistence),
+            viewModel.suspendForAuthentication()
+        )
+    }
+
+    @Test
+    fun `new sign in waits for a pending preservation write before enabling gameplay`() = runTest {
+        val write = CompletableDeferred<Unit>()
+        coEvery { sdk.pause() } coAnswers { write.await() }
+        launch { viewModel.suspendForAuthentication() }
+        runCurrent()
+        launch {
+            viewModel.enableAfterAuthentication()
+            viewModel.bootstrapApp()
+        }
+        runCurrent()
+        coVerify(exactly = 0) { sdk.restore() }
+        write.complete(Unit)
+        advanceUntilIdle()
+        coVerify(exactly = 1) { sdk.restore() }
     }
 }

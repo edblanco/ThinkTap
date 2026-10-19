@@ -16,12 +16,18 @@ import com.dosparta.trivia.ui.R
 import com.dosparta.trivia.ui.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 sealed interface TriviaUiState {
@@ -58,6 +64,33 @@ class TriviaViewModel @Inject constructor(private val sdk: TriviaSdk) : ViewMode
     private var loadJob: Job? = null
     private var categoriesJob: Job? = null
     private var bootstrapped = false
+    private val gameScope = CoroutineScope(
+        viewModelScope.coroutineContext + SupervisorJob(viewModelScope.coroutineContext[Job])
+    )
+    private val authenticationTransition = Mutex()
+    private var gameplayEnabled = true
+
+    private fun launchGameCommand(command: suspend () -> Unit): Job? =
+        if (gameplayEnabled) gameScope.launch { command() } else null
+
+    suspend fun suspendForAuthentication(): UiText? = withContext(NonCancellable) {
+        authenticationTransition.withLock {
+            gameplayEnabled = false
+            val jobs = gameScope.coroutineContext[Job]?.children?.toList().orEmpty()
+            jobs.forEach { it.cancel() }
+            jobs.forEach { it.join() }
+            sdk.pause()
+            bootstrapped = false
+            mutableStartupState.value = StartupUiState.Loading
+            sdk.persistenceFailure.value?.toUiText()
+        }
+    }
+
+    suspend fun enableAfterAuthentication() {
+        authenticationTransition.withLock {
+            gameplayEnabled = true
+        }
+    }
 
     init {
         viewModelScope.launch {
@@ -87,9 +120,9 @@ class TriviaViewModel @Inject constructor(private val sdk: TriviaSdk) : ViewMode
     }
 
     fun bootstrapApp() {
-        if (bootstrapped) return
+        if (!gameplayEnabled || bootstrapped) return
         bootstrapped = true
-        viewModelScope.launch {
+        launchGameCommand {
             mutableStartupState.value = StartupUiState.Loading
             try {
                 if (sdk.restore()) {
@@ -115,15 +148,16 @@ class TriviaViewModel @Inject constructor(private val sdk: TriviaSdk) : ViewMode
 
     fun loadCategories() {
         if (categoriesJob?.isActive == true || mutableCategoriesLoading.value) return
-        categoriesJob = viewModelScope.launch { loadCategoriesInternal(updateStartupState = false) }
+        categoriesJob = launchGameCommand { loadCategoriesInternal(updateStartupState = false) }
     }
 
     fun onContentLanguageChanged(language: AppLanguage) {
+        if (!gameplayEnabled) return
         if (!sdk.setContentLanguage(language)) return
         val categoriesAlreadyRequested = categories.value.isNotEmpty() || categoriesError.value != null
         if (categoriesAlreadyRequested && startupState.value !is StartupUiState.Loading) {
             val previousJob = categoriesJob
-            categoriesJob = viewModelScope.launch {
+            categoriesJob = launchGameCommand {
                 previousJob?.cancelAndJoin()
                 loadCategoriesInternal(updateStartupState = false)
             }
@@ -166,35 +200,36 @@ class TriviaViewModel @Inject constructor(private val sdk: TriviaSdk) : ViewMode
 
     fun loadQuestions(config: TriviaConfig) {
         if (loadJob?.isActive == true) return
-        loadJob = viewModelScope.launch { sdk.start(config) }
+        loadJob = launchGameCommand { sdk.start(config) }
     }
 
     fun submit(answer: String) {
-        viewModelScope.launch { sdk.submit(answer) }
+        launchGameCommand { sdk.submit(answer) }
     }
 
     fun finishEarly() {
-        viewModelScope.launch { sdk.finishEarly() }
+        launchGameCommand { sdk.finishEarly() }
     }
 
     fun saveGameOnPause() {
-        viewModelScope.launch { sdk.pause() }
+        launchGameCommand { sdk.pause() }
     }
 
     fun onAppResumed() {
-        viewModelScope.launch { sdk.resume() }
+        launchGameCommand { sdk.resume() }
     }
 
     fun restart() {
+        if (!gameplayEnabled) return
         cancelPendingLoad()
-        viewModelScope.launch { sdk.reset() }
+        launchGameCommand { sdk.reset() }
         if (categories.value.isEmpty()) loadCategories()
     }
 
     fun replayLastGame(): Boolean {
-        if (!sdk.canReplay) return false
+        if (!gameplayEnabled || !sdk.canReplay) return false
         cancelPendingLoad()
-        viewModelScope.launch { sdk.replay() }
+        launchGameCommand { sdk.replay() }
         return true
     }
 

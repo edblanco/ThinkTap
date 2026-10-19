@@ -5,4 +5,15 @@
     <string name="daily_reminder_channel_description">提醒你完成每日知识问答。</string>
     <string name="daily_reminder_title">每日问答时间到了！</string>
     <string name="daily_reminder_body">回来开始新一轮知识问答，挑战一下自己吧。</string>
+    <string name="auth_title">登录 ThinkTap Pro</string>
+    <string name="auth_description">使用 Google 登录后即可游戏。退出登录后，问答进度和设置仍保留在此设备上。</string>
+    <string name="auth_restoring">正在准备登录状态...</string>
+    <string name="auth_google_sign_in">使用 Google 登录</string>
+    <string name="auth_sign_out">退出登录</string>
+    <string name="auth_signed_in">已登录</string>
+    <string name="auth_error_configuration">尚未配置 Pro 登录。请配置 Firebase 和 Google 网页客户端 ID，然后重新构建应用。请参阅身份验证设置指南。</string>
+    <string name="auth_error_network">无法连接 Google 或 Firebase。请检查网络连接并重试。已有的登录状态仍可离线使用。</string>
+    <string name="auth_error_credential">Google 无法验证此帐号。请重新登录。</string>
+    <string name="auth_error_provider">Google 登录不可用。请检查 Google Play 服务和网络连接，然后重试。</string>
+    <string name="auth_error_session_clear">已退出登录，但无法重置 Google 帐号选择。你仍可重新登录。</string>
 </resources>

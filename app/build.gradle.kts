@@ -33,6 +33,10 @@ android {
             dimension = "tier"
             buildConfigField("boolean", "SUPPORTS_EXTRA_LANGUAGES", "true")
             buildConfigField("boolean", "TRANSLATION_FRAMEWORKS_ENABLED", "true")
+            resValue("string", "firebase_api_key", providers.gradleProperty("thinktap.firebase.apiKey").getOrElse(""))
+            resValue("string", "firebase_application_id", providers.gradleProperty("thinktap.firebase.applicationId").getOrElse(""))
+            resValue("string", "firebase_project_id", providers.gradleProperty("thinktap.firebase.projectId").getOrElse(""))
+            resValue("string", "google_web_client_id", providers.gradleProperty("thinktap.auth.webClientId").getOrElse(""))
         }
     }
 
@@ -52,11 +56,13 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+        resValues = true
     }
     androidResources {
         // Publishes the supported languages to Android 13+ per-app language settings.
         generateLocaleConfig = true
     }
+    testOptions.unitTests.isIncludeAndroidResources = true
 }
 
 // Anchor task so CI running `./gradlew connectedDebugAndroidTest` tests all debug variants.
@@ -66,6 +72,10 @@ tasks.register("connectedDebugAndroidTest") {
     dependsOn(tasks.matching {
         it.name.startsWith("connected") && it.name.endsWith("DebugAndroidTest") && it.name != "connectedDebugAndroidTest"
     })
+}
+
+tasks.named<io.gitlab.arturbosch.detekt.Detekt>("detekt") {
+    source("src/free/java", "src/pro/java", "src/testPro/java")
 }
 
 kotlin {
@@ -82,6 +92,14 @@ dependencies {
         exclude(group = "com.google.mlkit", module = "translate")
     }
     "proImplementation"(libs.trivia.sdk.android)
+    "proImplementation"(platform(libs.firebase.bom))
+    "proImplementation"(libs.firebase.auth)
+    "proImplementation"(libs.androidx.credentials)
+    "proImplementation"(libs.androidx.credentials.play.services)
+    "proImplementation"(libs.google.id)
+    "proImplementation"(libs.kotlinx.coroutines.play.services)
+    "proImplementation"(libs.androidx.lifecycle.runtime.compose)
+    "proImplementation"(libs.androidx.lifecycle.viewmodel.compose)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -100,6 +118,9 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockk)
+    "testProImplementation"(libs.androidx.ui.test.junit4)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

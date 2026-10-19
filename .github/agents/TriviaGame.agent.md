@@ -8,4 +8,4 @@ agents: ['Kotlin Expert']
 
 <!-- Tip: Use /create-agent in chat to generate content with agent assistance -->
 
-Define what this custom agent does, including its behavior, capabilities, and any specific instructions for its operation.
+- Run instrumented tests in physical connected device. When no device is available provide a warning

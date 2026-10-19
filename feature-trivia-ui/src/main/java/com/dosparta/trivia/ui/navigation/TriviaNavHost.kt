@@ -53,10 +53,10 @@ fun TriviaNavHost(
     onReminderTimeChange: (Int, Int) -> Unit = { _, _ -> },
     selectedLanguage: AppLanguage? = null,
     onLanguageSelected: (AppLanguage?) -> Unit = {},
-    showLanguagePicker: Boolean = true
+    showLanguagePicker: Boolean = true,
+    viewModel: TriviaViewModel = hiltViewModel()
 ) {
     val navController = rememberNavController()
-    val viewModel: TriviaViewModel = hiltViewModel()
     val categories = viewModel.categories.collectAsState().value
     val categoriesError = viewModel.categoriesError.collectAsState().value
     val startupState = viewModel.startupState.collectAsState().value

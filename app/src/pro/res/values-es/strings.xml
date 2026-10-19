@@ -5,4 +5,15 @@
     <string name="daily_reminder_channel_description">Te recuerda jugar tu quiz de trivia diario.</string>
     <string name="daily_reminder_title">¡Es hora de tu quiz diario!</string>
     <string name="daily_reminder_body">Vuelve y ponte a prueba con una nueva partida de trivia.</string>
+    <string name="auth_title">Inicia sesión en ThinkTap Pro</string>
+    <string name="auth_description">Inicia sesión con Google para jugar. El progreso del quiz y los ajustes permanecen en este dispositivo incluso al cerrar sesión.</string>
+    <string name="auth_restoring">Preparando tu sesión...</string>
+    <string name="auth_google_sign_in">Iniciar sesión con Google</string>
+    <string name="auth_sign_out">Cerrar sesión</string>
+    <string name="auth_signed_in">Sesión iniciada</string>
+    <string name="auth_error_configuration">El inicio de sesión de Pro no está configurado. Configura Firebase y el ID de cliente web de Google y vuelve a compilar la app. Consulta la guía de autenticación.</string>
+    <string name="auth_error_network">No se pudo conectar con Google o Firebase. Comprueba tu conexión e inténtalo de nuevo. Una sesión existente sigue disponible sin conexión.</string>
+    <string name="auth_error_credential">Google no pudo autenticar esta cuenta. Vuelve a iniciar sesión.</string>
+    <string name="auth_error_provider">El inicio de sesión con Google no está disponible. Comprueba los servicios de Google Play y tu conexión e inténtalo de nuevo.</string>
+    <string name="auth_error_session_clear">Has cerrado sesión, pero no se pudo restablecer la selección de cuenta de Google. Puedes volver a iniciar sesión.</string>
 </resources>
