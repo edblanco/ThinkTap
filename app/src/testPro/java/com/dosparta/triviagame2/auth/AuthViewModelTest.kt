@@ -136,6 +136,26 @@ class AuthViewModelTest {
     }
 
     @Test
+    fun `successful refresh clears the previous network error after recovery`() = runTest {
+        repository.state.value = AuthState.SignedIn("offline", null)
+        repository.onRefresh = { throw AuthException(AuthError.NETWORK) }
+        viewModel.refreshSession()
+        advanceUntilIdle()
+        assertEquals(AuthError.NETWORK, viewModel.error.value)
+
+        val recovery = CompletableDeferred<Unit>()
+        repository.onRefresh = { recovery.await() }
+        viewModel.refreshSession()
+        runCurrent()
+        assertEquals(AuthError.NETWORK, viewModel.error.value)
+
+        recovery.complete(Unit)
+        advanceUntilIdle()
+        assertNull(viewModel.error.value)
+        assertEquals(AuthState.SignedIn("offline", null), viewModel.state.value)
+    }
+
+    @Test
     fun `detected provider invalidation becomes signed out`() = runTest {
         repository.state.value = AuthState.SignedIn("revoked", null)
         repository.onRefresh = { repository.state.value = AuthState.SignedOut }
