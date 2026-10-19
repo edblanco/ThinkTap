@@ -39,6 +39,7 @@ class AuthViewModel @Inject constructor(private val repository: AuthRepository) 
         refreshJob = viewModelScope.launch {
             try {
                 repository.refreshSession()
+                mutableError.value = null
             } catch (e: AuthException) {
                 Log.w(TAG, "Session refresh failed: ${e.error}")
                 mutableError.value = e.error
