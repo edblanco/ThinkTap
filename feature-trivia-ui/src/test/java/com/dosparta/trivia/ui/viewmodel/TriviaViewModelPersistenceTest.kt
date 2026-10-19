@@ -1,7 +1,13 @@
 package com.dosparta.trivia.ui.viewmodel
 
 import android.util.Log
+import com.dosparta.trivia.domain.localization.IContentLocalizationRepository
+import com.dosparta.trivia.domain.model.AppLanguage
 import com.dosparta.trivia.domain.model.TriviaCategory
+import com.dosparta.trivia.domain.model.TriviaQuestion
+import com.dosparta.trivia.domain.repository.GameSessionState
+import com.dosparta.trivia.domain.repository.IGameSessionRepository
+import com.dosparta.trivia.domain.repository.ITriviaRepository
 import com.dosparta.trivia.sdk.TriviaError
 import com.dosparta.trivia.sdk.TriviaSdk
 import com.dosparta.trivia.sdk.TriviaSdkException
@@ -30,6 +36,7 @@ import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.test.assertIs
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TriviaViewModelPersistenceTest {
@@ -165,5 +172,63 @@ class TriviaViewModelPersistenceTest {
         write.complete(Unit)
         advanceUntilIdle()
         coVerify(exactly = 1) { sdk.restore() }
+    }
+
+    @Test
+    fun `failed answer and authentication saves cannot restore stale progress on sign in`() = runTest {
+        val question = TriviaQuestion(
+            category = "Science",
+            type = "multiple",
+            difficulty = "easy",
+            question = "What is H2O?",
+            correctAnswer = "Water",
+            options = listOf("Water", "Salt")
+        )
+        var stored = GameSessionState(listOf(question, question), 0, 0, 42L, emptyMap())
+        val sessions = mockk<IGameSessionRepository>()
+        val repository = mockk<ITriviaRepository>()
+        val localization = mockk<IContentLocalizationRepository>()
+        every { localization.translationUnavailable } returns MutableStateFlow(false)
+        every { localization.contentLanguage } returns MutableStateFlow(AppLanguage.ENGLISH)
+        coEvery { sessions.getActiveSession() } answers { stored }
+        coEvery { sessions.saveGameSession(any(), any(), any(), any(), any()) } throws
+            IllegalStateException("Storage unavailable")
+        val controller = TriviaSdk(repository, sessions, localization)
+        val vm = TriviaViewModel(controller)
+        vm.bootstrapApp()
+        advanceUntilIdle()
+        vm.submit("Water")
+        advanceUntilIdle()
+        assertEquals(1, assertIs<TriviaState.Playing>(controller.state.value).session.currentIndex)
+        assertEquals(0, stored.currentIndex)
+        assertEquals(UiText.StringResource(R.string.error_persistence), vm.persistenceError.value)
+
+        // Logout can preserve more than once as authentication state changes.
+        repeat(2) { vm.suspendForAuthentication() }
+        vm.enableAfterAuthentication()
+        vm.bootstrapApp()
+        advanceUntilIdle()
+        assertEquals(
+            StartupUiState.Error(UiText.StringResource(R.string.error_persistence)),
+            vm.startupState.value
+        )
+        assertEquals(1, assertIs<TriviaState.Playing>(controller.state.value).session.currentIndex)
+        assertEquals(1, assertIs<TriviaState.Playing>(controller.state.value).session.correctCount)
+        assertEquals(0, stored.currentIndex)
+        coVerify(exactly = 1) { sessions.getActiveSession() }
+
+        coEvery { sessions.saveGameSession(any(), any(), any(), any(), any()) } answers {
+            stored = GameSessionState(firstArg(), secondArg(), thirdArg(), arg(3), arg(4))
+        }
+        vm.retryBootstrap()
+        advanceUntilIdle()
+        assertEquals(StartupUiState.NavigateToTrivia, vm.startupState.value)
+        assertEquals(1, assertIs<TriviaState.Playing>(controller.state.value).session.currentIndex)
+        assertEquals(1, stored.currentIndex)
+        assertEquals(1, stored.correctCount)
+        assertEquals(mapOf(0 to "Water"), stored.selectedAnswers)
+        assertEquals(null, vm.persistenceError.value)
+        coVerify(exactly = 2) { sessions.getActiveSession() }
+        coVerify(exactly = 0) { sessions.clearActiveSession() }
     }
 }

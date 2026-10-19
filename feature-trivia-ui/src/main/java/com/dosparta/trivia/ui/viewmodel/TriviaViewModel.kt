@@ -64,6 +64,7 @@ class TriviaViewModel @Inject constructor(private val sdk: TriviaSdk) : ViewMode
     private var loadJob: Job? = null
     private var categoriesJob: Job? = null
     private var bootstrapped = false
+    private var preservationRetryRequired = false
     private val gameScope = CoroutineScope(
         viewModelScope.coroutineContext + SupervisorJob(viewModelScope.coroutineContext[Job])
     )
@@ -80,6 +81,8 @@ class TriviaViewModel @Inject constructor(private val sdk: TriviaSdk) : ViewMode
             jobs.forEach { it.cancel() }
             jobs.forEach { it.join() }
             sdk.pause()
+            preservationRetryRequired = sdk.state.value is TriviaState.Playing &&
+                sdk.persistenceFailure.value != null
             bootstrapped = false
             mutableStartupState.value = StartupUiState.Loading
             sdk.persistenceFailure.value?.toUiText()
@@ -125,6 +128,12 @@ class TriviaViewModel @Inject constructor(private val sdk: TriviaSdk) : ViewMode
         launchGameCommand {
             mutableStartupState.value = StartupUiState.Loading
             try {
+                if (preservationRetryRequired) {
+                    // Never replace newer live progress with storage after a failed pause.
+                    sdk.pause()
+                    sdk.persistenceFailure.value?.let { throw it }
+                    preservationRetryRequired = false
+                }
                 if (sdk.restore()) {
                     mutableStartupState.value = StartupUiState.NavigateToTrivia
                 } else {

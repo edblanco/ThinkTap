@@ -56,6 +56,10 @@ pro displays an actionable configuration error and disables login.
 - **Sign out** is available above all authenticated trivia screens. It pauses and
   saves the game before Firebase sign-out and clears Credential Manager session state.
   Save or provider errors are displayed explicitly.
+- If an in-progress game cannot be saved during logout, the same controller retains
+  its newer progress in memory. The next sign-in retries preservation before reading
+  storage; continued write failures show a retryable startup error instead of restoring
+  an older snapshot. Unsaved progress cannot survive process termination.
 - Games are device-local and **shared across accounts** on the same installation.
   Logout, account changes, and detected session invalidation do not delete progress.
   Existing games saved before login are also retained.
