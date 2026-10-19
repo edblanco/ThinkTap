@@ -5,4 +5,15 @@
     <string name="daily_reminder_channel_description">Erinnert dich daran, dein tägliches Trivia-Quiz zu spielen.</string>
     <string name="daily_reminder_title">Zeit für dein tägliches Quiz!</string>
     <string name="daily_reminder_body">Komm zurück und fordere dich mit einer neuen Trivia-Runde heraus.</string>
+    <string name="auth_title">Bei ThinkTap Pro anmelden</string>
+    <string name="auth_description">Melde dich mit Google an, um zu spielen. Dein Quizfortschritt und deine Einstellungen bleiben auch nach der Abmeldung auf diesem Gerät.</string>
+    <string name="auth_restoring">Deine Sitzung wird vorbereitet...</string>
+    <string name="auth_google_sign_in">Mit Google anmelden</string>
+    <string name="auth_sign_out">Abmelden</string>
+    <string name="auth_signed_in">Angemeldet</string>
+    <string name="auth_error_configuration">Die Pro-Anmeldung ist nicht konfiguriert. Konfiguriere Firebase und die Google-Web-Client-ID und erstelle die App erneut. Siehe die Anleitung zur Authentifizierung.</string>
+    <string name="auth_error_network">Google oder Firebase ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut. Eine bestehende Anmeldung bleibt offline verfügbar.</string>
+    <string name="auth_error_credential">Google konnte dieses Konto nicht authentifizieren. Bitte melde dich erneut an.</string>
+    <string name="auth_error_provider">Die Google-Anmeldung ist nicht verfügbar. Prüfe die Google Play-Dienste und deine Verbindung und versuche es erneut.</string>
+    <string name="auth_error_session_clear">Du bist abgemeldet, aber die Google-Kontoauswahl konnte nicht zurückgesetzt werden. Du kannst dich trotzdem erneut anmelden.</string>
 </resources>

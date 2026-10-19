@@ -5,7 +5,9 @@ content from OpenTDB and comes in two product flavors:
 - **`free`**: Lightweight English-only flavor that excludes the ML Kit translation dependency,
   uses the English-only SDK path without initializing translation adapters, and strips non-English resources.
 - **`pro`**: Full-featured flavor supporting English, German, Spanish, and Simplified Chinese,
-  with runtime dual-engine content translation (DeepL API and ML Kit) and in-app language switching.
+  with runtime dual-engine content translation (DeepL API and ML Kit), in-app language switching,
+  and mandatory Google sign-in through Firebase Authentication. Games and settings remain
+  device-local and are preserved across logout and account changes.
 
 ## Requirements
 
@@ -35,6 +37,10 @@ From the repository root:
 For local SDK source development, use `./gradlew -PuseLocalTriviaSdk=true :app:assembleFreeDebug`.
 The normal build uses versioned Maven artifacts, not project dependencies. See
 [SDK integration](sdk/README.md) for publication, API, and lifecycle details.
+
+Pro builds require Firebase client configuration to sign in; an unconfigured pro build
+shows an explicit setup error rather than permitting guest gameplay. See
+[authentication setup](docs/authentication.md). Free builds need no Firebase configuration.
 
 ## Independent projects
 
@@ -93,3 +99,5 @@ See the guides below for CI coverage requirements, screenshot testing, and local
   baselines across macOS and Linux.
 - [TriviaGame Copilot agent](.github/agents/TriviaGame.agent.md) — repository agent configuration
   template.
+- [Authentication](docs/authentication.md) — pro Google login, Firebase client setup,
+  offline session entry, preserved games/settings, tests, and release requirements.

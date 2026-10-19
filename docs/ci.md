@@ -49,6 +49,12 @@ repository secrets and have only `contents: read` token permissions. Actions are
 to commit SHAs. GitHub may require a maintainer to approve workflows from outside
 contributors before any tests run.
 
+Pro authentication tests use fake provider state and require no production Firebase
+configuration or Google accounts. Pro APKs compiled without client configuration show
+an explicit setup error and do not bypass login. Free builds remain independent of
+Firebase. See [authentication setup](authentication.md) for configured device testing
+and the required pre-release checks.
+
 ## Coverage requirement
 
 The `JVM tests` check fails when **line coverage is below 70%** in

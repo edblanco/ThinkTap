@@ -1,0 +1,13 @@
+<resources>
+    <string name="auth_title">Sign in to ThinkTap Pro</string>
+    <string name="auth_description">Sign in with Google to play. Your quiz progress and settings stay on this device, even when you sign out.</string>
+    <string name="auth_restoring">Preparing your session...</string>
+    <string name="auth_google_sign_in">Sign in with Google</string>
+    <string name="auth_sign_out">Sign out</string>
+    <string name="auth_signed_in">Signed in</string>
+    <string name="auth_error_configuration">Pro login is not configured. Configure Firebase and the Google web client ID, then rebuild the app. See the authentication setup guide.</string>
+    <string name="auth_error_network">Could not reach Google or Firebase. Check your connection and try again. An existing sign-in remains available offline.</string>
+    <string name="auth_error_credential">Google could not authenticate this account. Please sign in again.</string>
+    <string name="auth_error_provider">Google sign-in is unavailable. Check Google Play services and your connection, then try again.</string>
+    <string name="auth_error_session_clear">You are signed out, but Google account selection could not be reset. You can still sign in again.</string>
+</resources>

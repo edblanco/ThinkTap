@@ -72,33 +72,36 @@ class MainActivity : AppCompatActivity() {
 
         setContent {
             TriviaGame2Theme {
-                TriviaNavHost(
-                    reminderEnabled = reminderSettings.enabled,
-                    reminderHour = reminderSettings.hour,
-                    reminderMinute = reminderSettings.minute,
-                    onReminderEnabledChange = { enabled ->
-                        if (!enabled) {
-                            reminderSettings = reminderManager.setEnabled(false)
-                        } else {
-                            if (canPostNotifications()) {
-                                reminderSettings = reminderManager.setEnabled(true)
+                AppEntry(viewModel) {
+                    TriviaNavHost(
+                        viewModel = viewModel,
+                        reminderEnabled = reminderSettings.enabled,
+                        reminderHour = reminderSettings.hour,
+                        reminderMinute = reminderSettings.minute,
+                        onReminderEnabledChange = { enabled ->
+                            if (!enabled) {
+                                reminderSettings = reminderManager.setEnabled(false)
                             } else {
-                                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                if (canPostNotifications()) {
+                                    reminderSettings = reminderManager.setEnabled(true)
+                                } else {
+                                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                            }
+                        },
+                        onReminderTimeChange = { hour, minute ->
+                            reminderSettings = reminderManager.setTime(hour, minute)
+                        },
+                        showLanguagePicker = BuildConfig.SUPPORTS_EXTRA_LANGUAGES,
+                        selectedLanguage = languageOverride,
+                        onLanguageSelected = { language ->
+                            if (BuildConfig.SUPPORTS_EXTRA_LANGUAGES && language != languageOverride) {
+                                languageOverride = language
+                                languageManager.applyOverride(language)
                             }
                         }
-                    },
-                    onReminderTimeChange = { hour, minute ->
-                        reminderSettings = reminderManager.setTime(hour, minute)
-                    },
-                    showLanguagePicker = BuildConfig.SUPPORTS_EXTRA_LANGUAGES,
-                    selectedLanguage = languageOverride,
-                    onLanguageSelected = { language ->
-                        if (BuildConfig.SUPPORTS_EXTRA_LANGUAGES && language != languageOverride) {
-                            languageOverride = language
-                            languageManager.applyOverride(language)
-                        }
-                    }
-                )
+                    )
+                }
             }
         }
     }
